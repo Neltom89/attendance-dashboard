@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GSPS Attendance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#1f3864; --blue:#2e75b6; --light:#deebf7; --bg:#f5f7fa;
+    --ink:#1a2232; --muted:#5a6272; --accent:#ffd966; --border:#dde3ec;
+    --green:#16a34a; --red:#dc2626; --amber:#f59e0b; --indigo:#4f46e5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  a{color:var(--blue);text-decoration:none}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  aside{background:linear-gradient(180deg,#1a2f5c,#0f1d3d);color:#fff;padding:20px 0;position:sticky;top:0;height:100vh;overflow:auto}
+  .brand{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:18px}
+  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.5px}
+  .brand p{margin:4px 0 0;font-size:11px;color:#9fb1d1;letter-spacing:.5px;text-transform:uppercase}
+  nav a{display:flex;align-items:center;gap:10px;padding:11px 20px;color:#cbd5e1;font-weight:500;border-left:3px solid transparent}
+  nav a:hover{background:rgba(255,255,255,.05);color:#fff}
+  nav a.active{background:rgba(255,255,255,.09);color:#fff;border-left-color:var(--accent)}
+  nav a .ic{width:18px;display:inline-block;text-align:center}
+  .foot{position:absolute;bottom:16px;left:20px;right:20px;font-size:11px;color:#7b8eb0;border-top:1px solid rgba(255,255,255,.08);padding-top:12px}
+  main{padding:24px 32px 60px;max-width:1400px;width:100%}
+  header.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  header.topbar h2{font-size:22px;margin:0;color:var(--navy)}
+  header.topbar .meta{font-size:13px;color:var(--muted)}
+  .btn{background:var(--blue);color:#fff;border:0;padding:9px 16px;border-radius:8px;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+  .btn:hover{background:var(--navy)}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--border)}
+  .btn.ghost:hover{background:var(--light)}
+  .btn.green{background:var(--green)}
+  .btn.red{background:var(--red)}
+  .btn.amber{background:var(--amber)}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 1px 2px rgba(15,29,61,.04)}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .kpi{display:flex;flex-direction:column;gap:4px;padding:18px 20px;position:relative;overflow:hidden}
+  .kpi .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .kpi .val{font-size:30px;font-weight:800;color:var(--navy);line-height:1.1}
+  .kpi .sub{font-size:12px;color:var(--muted)}
+  .kpi.ok .val{color:var(--green)} .kpi.warn .val{color:var(--amber)} .kpi.bad .val{color:var(--red)}
+  .kpi .bar{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+  .kpi.ok .bar{background:var(--green)} .kpi.warn .bar{background:var(--amber)} .kpi.bad .bar{background:var(--red)}
+  .two{grid-template-columns:2fr 1fr}
+  .three{grid-template-columns:1fr 1fr 1fr}
+  h3.section{font-size:14px;color:var(--navy);margin:0 0 12px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  th{background:#f8fafc;font-weight:600;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.3px}
+  tr:hover td{background:#fbfcfe}
+  .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .pill.P{background:#dcfce7;color:#15803d}
+  .pill.A{background:#fee2e2;color:#b91c1c}
+  .pill.L{background:#fef3c7;color:#b45309}
+  .pill.E{background:#dbeafe;color:#1e40af}
+  .pill.none{background:#f1f5f9;color:#64748b}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .toolbar input,.toolbar select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+  .toolbar input[type="search"]{width:260px}
+  .chart-wrap{position:relative;height:300px}
+  .chart-wrap.tall{height:340px}
+  .status-group{display:flex;gap:4px}
+  .status-btn{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;font-weight:700;font-size:12px;min-width:34px}
+  .status-btn:hover{border-color:var(--blue)}
+  .status-btn.P.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .status-btn.A.on{background:var(--red);color:#fff;border-color:var(--red)}
+  .status-btn.L.on{background:var(--amber);color:#fff;border-color:var(--amber)}
+  .status-btn.E.on{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:100}
+  .modal-bg.on{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:24px 28px;width:560px;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal h3{margin:0 0 16px;color:var(--navy)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .form-row.one{grid-template-columns:1fr}
+  .form-row label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  .form-row input, .form-row select, .form-row textarea{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:400;color:var(--ink);text-transform:none;letter-spacing:0}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .empty .ic{font-size:36px;margin-bottom:10px}
+  .page{display:none}.page.on{display:block}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:var(--light);color:var(--navy)}
+  .house-RED{background:#fee2e2;color:#991b1b}
+  .house-BLUE{background:#dbeafe;color:#1e40af}
+  .house-GREEN{background:#dcfce7;color:#166534}
+  .house-YELLOW{background:#fef3c7;color:#854d0e}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:all .25s}
+  .toast.on{transform:translateY(0);opacity:1}
+  .sync-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);margin-right:6px}
+  .sync-dot.off{background:var(--amber)}
+  .sync-dot.err{background:var(--red)}
+  .sync-bar{position:sticky;top:0;z-index:5;background:#fff;padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin:-24px -32px 24px}
+  .login{max-width:440px;margin:80px auto;padding:30px 34px}
+  .login h2{margin:0 0 6px;color:var(--navy)}
+  .login p{color:var(--muted);margin:0 0 20px}
+  .login label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px}
+  .login input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px}
+  .login .err{color:var(--red);font-size:13px;margin-top:10px;display:none}
+  .login .err.on{display:block}
+  @media print{
+    aside,.topbar .btn,.toolbar,.sync-bar{display:none!important}
+    .app{grid-template-columns:1fr}
+    main{padding:0}
+    .card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid}
+  }
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    aside{position:static;height:auto;padding:12px}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .two,.three{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN / SETUP SCREEN -->
+<div id="gate" style="display:none">
+  <div class="card login">
+    <h2 id="gate-title">Sign in</h2>
+    <p id="gate-sub">Enter the admin passcode to continue.</p>
+
+    <div id="gate-connect" style="display:none">
+      <label>Google Apps Script Web App URL</label>
+      <input id="g-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Paste the URL you got after deploying the script (see setup guide).</div>
+    </div>
+
+    <label>Admin passcode</label>
+    <input id="g-pass" type="password" autocomplete="current-password" placeholder="••••••">
+
+    <label>Your name (optional, for audit log)</label>
+    <input id="g-user" placeholder="e.g. Mrs Naomi">
+
+    <div class="err" id="g-err"></div>
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn" style="flex:1" onclick="doLogin()">Sign in</button>
+      <button class="btn ghost" onclick="offlineMode()">Use offline</button>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center">
+      First time setting up? <a href="#" onclick="toggleConnect();return false">Connect to Google Sheets</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="appRoot" style="display:none">
+  <aside>
+    <div class="brand">
+      <h1>GSPS School</h1>
+      <p>Attendance System</p>
+    </div>
+    <nav id="nav">
+      <a href="#dashboard" class="active"><span class="ic">▦</span> Dashboard</a>
+      <a href="#attendance"><span class="ic">✓</span> Daily Attendance</a>
+      <a href="#students"><span class="ic">☰</span> Students</a>
+      <a href="#reports"><span class="ic">◈</span> Reports</a>
+      <a href="#settings"><span class="ic">⚙</span> Settings</a>
+    </nav>
+    <div class="foot" id="foot-status">Signed in</div>
+  </aside>
+  <main>
+    <div class="sync-bar" id="sync-bar">
+      <span id="sync-dot" class="sync-dot"></span>
+      <span id="sync-text">Online · synced</span>
+      <div style="flex:1"></div>
+      <span id="pending-count" style="font-size:12px;color:var(--amber);font-weight:600"></span>
+      <button class="btn sm ghost" onclick="forceSync()">↻ Sync now</button>
+      <button class="btn sm ghost" onclick="signOut()">Sign out</button>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <section id="page-dashboard" class="page on">
+      <header class="topbar">
+        <div>
+          <h2>Dashboard</h2>
+          <div class="meta" id="today-label"></div>
+        </div>
+        <div>
+          <button class="btn ghost" onclick="window.print()">Print</button>
+          <button class="btn" onclick="location.hash='#attendance'">Take Attendance →</button>
+        </div>
+      </header>
+      <div class="grid kpis" id="kpis"></div>
+      <div style="height:18px"></div>
+      <div class="grid two">
+        <div class="card">
+          <h3 class="section">Attendance % by Class (this month)</h3>
+          <div class="chart-wrap"><canvas id="classChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3 class="section">Today's status</h3>
+          <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="card">
+        <h3 class="section">Attendance trend — last 20 school days</h3>
+        <div class="chart-wrap tall"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="card">
+        <h3 class="section">Class summary</h3>
+        <table id="classTable">
+          <thead><tr><th>Class</th><th>Pupils</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>Attendance %</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ATTENDANCE PAGE -->
+    <section id="page-attendance" class="page">
+      <header class="topbar">
+        <div>
+          <h2>Daily Attendance</h2>
+          <div class="meta">Mark each pupil for the selected date. Changes save to Google Sheets automatically.</div>
+        </div>
+        <div>
+          <button class="btn ghost" onclick="exportDayCSV()">Export day CSV</button>
+          <button class="btn ghost" onclick="window.print()">Print</button>
+        </div>
+      </header>
+      <div class="card">
+        <div class="toolbar">
+          <label style="font-weight:600;color:var(--muted)">Date</label>
+          <input type="date" id="att-date">
+          <label style="font-weight:600;color:var(--muted)">Class</label>
+          <select id="att-class"></select>
+          <input type="search" id="att-search" placeholder="Search pupil…">
+          <div style="flex:1"></div>
+          <button class="btn green sm" onclick="markAll('P')">All Present</button>
+          <button class="btn amber sm" onclick="markAll('L')">All Late</button>
+          <button class="btn red sm" onclick="markAll('A')">All Absent</button>
+          <button class="btn ghost sm" onclick="markAll(null)">Clear</button>
+        </div>
+        <div id="att-summary" style="margin-bottom:12px"></div>
+        <table id="attTable">
+          <thead><tr><th style="width:40px">#</th><th>Reg No</th><th>Student</th><th>House</th><th style="width:210px">Status</th><th>Notes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STUDENTS PAGE -->
+    <section id="page-students" class="page">
+      <header class="topbar">
+        <div>
+          <h2>Student Database</h2>
+          <div class="meta" id="student-count"></div>
+        </div>
+        <div>
+          <button class="btn ghost" onclick="exportStudentsCSV()">Export CSV</button>
+          <button class="btn" onclick="openStudentModal()">+ Add Student</button>
+        </div>
+      </header>
+      <div class="card">
+        <div class="toolbar">
+          <input type="search" id="stu-search" placeholder="Search name, reg no, email, address…">
+          <select id="stu-class-filter"><option value="">All classes</option></select>
+          <select id="stu-gender-filter">
+            <option value="">All genders</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+          <select id="stu-house-filter">
+            <option value="">All houses</option>
+            <option value="RED">Red</option>
+            <option value="BLUE">Blue</option>
+            <option value="GREEN">Green</option>
+            <option value="YELLOW">Yellow</option>
+          </select>
+        </div>
+        <table id="stuTable">
+          <thead><tr>
+            <th>Reg No</th><th>Name</th><th>Class</th><th>Gender</th><th>House</th>
+            <th>Parent Phone</th><th>Email</th><th>Month %</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REPORTS PAGE -->
+    <section id="page-reports" class="page">
+      <header class="topbar">
+        <div>
+          <h2>Reports</h2>
+          <div class="meta">Attendance reports by student, class, or date range</div>
+        </div>
+        <div>
+          <button class="btn ghost" onclick="window.print()">Print</button>
+          <button class="btn ghost" onclick="exportReportCSV()">Export CSV</button>
+        </div>
+      </header>
+      <div class="card">
+        <div class="toolbar">
+          <label style="font-weight:600;color:var(--muted)">From</label>
+          <input type="date" id="rep-from">
+          <label style="font-weight:600;color:var(--muted)">To</label>
+          <input type="date" id="rep-to">
+          <label style="font-weight:600;color:var(--muted)">Class</label>
+          <select id="rep-class"><option value="">All classes</option></select>
+          <input type="search" id="rep-search" placeholder="Filter pupil…">
+        </div>
+        <h3 class="section">Per-pupil attendance summary</h3>
+        <table id="repTable">
+          <thead><tr>
+            <th>Reg No</th><th>Name</th><th>Class</th>
+            <th>School days</th><th>Present</th><th>Absent</th><th>Late</th><th>Excused</th><th>% Attendance</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SETTINGS PAGE -->
+    <section id="page-settings" class="page">
+      <header class="topbar"><div><h2>Settings</h2><div class="meta">Google Sheets connection, data management, and info</div></div></header>
+      <div class="grid two">
+        <div class="card">
+          <h3 class="section">Google Sheets connection</h3>
+          <p id="conn-info"></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn ghost" onclick="changeConnection()">Change URL / passcode</button>
+            <button class="btn ghost" onclick="forceSync()">↻ Re-sync now</button>
+            <button class="btn" onclick="uploadSeed()">Push local roster to Sheets</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:14px">
+            "Push local roster to Sheets" uploads the 149 seed pupils (or anyone you've added locally) into the Students sheet — run once the first time you connect a brand-new Google Sheet.
+          </p>
+        </div>
+        <div class="card">
+          <h3 class="section">Sync status</h3>
+          <div id="sync-details"></div>
+        </div>
+        <div class="card">
+          <h3 class="section">Data backup</h3>
+          <p>The primary database lives in your Google Sheet. Download a point-in-time JSON snapshot for extra safety.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn" onclick="backupJSON()">⬇ Download backup (JSON)</button>
+            <button class="btn red" onclick="resetLocal()">⚠ Reset local cache</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="section">Status codes</h3>
+          <p><span class="pill P">P</span> Present — counts 100%</p>
+          <p><span class="pill A">A</span> Absent — unexcused, counts 0%</p>
+          <p><span class="pill L">L</span> Late — counts 50%</p>
+          <p><span class="pill E">E</span> Excused — authorised absence (not counted)</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Student modal -->
+<div class="modal-bg" id="stu-modal">
+  <div class="modal">
+    <h3 id="stu-modal-title">Add student</h3>
+    <div class="form-row">
+      <label>Reg No<input id="f-reg" placeholder="GSPS/2026/XXX"></label>
+      <label>Full Name<input id="f-name" placeholder="ADEOLA JOHN OKORO"></label>
+    </div>
+    <div class="form-row">
+      <label>Class<select id="f-class"></select></label>
+      <label>Section<input id="f-section" placeholder="e.g. CHARLES BABAGE"></label>
+    </div>
+    <div class="form-row">
+      <label>Gender<select id="f-gender"><option value="">–</option><option>M</option><option>F</option></select></label>
+      <label>Date of Birth<input id="f-dob" placeholder="15 APR 2020"></label>
+    </div>
+    <div class="form-row">
+      <label>Religion<input id="f-religion"></label>
+      <label>Nationality<input id="f-nat" value="NIGERIAN"></label>
+    </div>
+    <div class="form-row">
+      <label>House<select id="f-house"><option value="">–</option><option>RED</option><option>BLUE</option><option>GREEN</option><option>YELLOW</option></select></label>
+      <label>Enrollment Date<input id="f-enroll" type="date"></label>
+    </div>
+    <div class="form-row one"><label>Address<input id="f-address"></label></div>
+    <div class="form-row">
+      <label>Mum's Phone<input id="f-mum"></label>
+      <label>Dad's Phone<input id="f-dad"></label>
+    </div>
+    <div class="form-row one"><label>Email<input id="f-email"></label></div>
+    <div class="form-row one"><label>Medical Notes / Allergies<textarea id="f-med" rows="2"></textarea></label></div>
+    <div class="form-row one"><label>Emergency Contact<input id="f-emg"></label></div>
+    <div class="form-row one"><label>Remarks<textarea id="f-rem" rows="2"></textarea></label></div>
+    <div class="modal-actions">
+      <button class="btn red sm" id="f-del" onclick="deleteStudent()" style="display:none">Delete</button>
+      <div style="flex:1"></div>
+      <button class="btn ghost" onclick="closeStudentModal()">Cancel</button>
+      <button class="btn" onclick="saveStudent()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =========================================================================
+// SEED DATA — used only for first-time local use or "Push roster" action
+// =========================================================================
+const SEED_STUDENTS = [{"REG_NO":"GSPS/2025/625","FULL_NAME":"ANISSA OBIYE AJEH","FIRST_NAME":"ANISSA OBIYE","SURNAME":"AJEH","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"21 Nov 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"DD 3 ZAMBIA CRESCENT BARNAWA KADUNA","MUM_PHONE":"8038886848","DAD_PHONE":"8061680056","EMAIL":"ajehadaje2@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/626","FULL_NAME":"VICTORY TITOBILOLUWA OLAYINKA","FIRST_NAME":"VICTORY TITOBILOLUWA","SURNAME":"OLAYINKA","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"30 Nov 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLOCK 2 FLAT 2 JO QRTS NAF BASE KADUNA","MUM_PHONE":"8181679936","DAD_PHONE":"9059276448","EMAIL":"kemideborah61@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/610","FULL_NAME":"DEBORAH ONYEDIKACHUKWU GWAZATISAN IFEANYI ONYIA","FIRST_NAME":"DEBORAH ONYEDIKACHUKWU GWAZATISAN","SURNAME":"IFEANYI ONYIA","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"16 Jan 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NI. 1 ZAIRE RD. BARNAWA KADUNA","MUM_PHONE":"8069298897","DAD_PHONE":"8035445894","EMAIL":"","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/611","FULL_NAME":"DAVINA CHUKWUAMAKA GWAZAZISAN IFEANYI ONYIA","FIRST_NAME":"DAVINA CHUKWUAMAKA GWAZAZISAN","SURNAME":"IFEANYI ONYIA","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"16 Jan 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NI. 1 ZAIRE RD. BARNAWA KADUNA","MUM_PHONE":"8069298897","DAD_PHONE":"8035445894","EMAIL":"","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/617","FULL_NAME":"CHIMEKA DANIEL OLUWAFERANMI MMERIEBEKINI","FIRST_NAME":"CHIMEKA DANIEL OLUWAFERANMI","SURNAME":"MMERIEBEKINI","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"M","DOB":"15 Jan 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"KLAPANZIN BARRACKS, KADUNA","MUM_PHONE":"8022118872","DAD_PHONE":"8075999472","EMAIL":"","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/624","FULL_NAME":"ONYINYECHI PRINCESS OKORO","FIRST_NAME":"ONYINYECHI PRINCESS","SURNAME":"OKORO","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"21 Aug 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"5 YENKPOM STREET BARNAWA GRA KADUNA","MUM_PHONE":"9036148965","DAD_PHONE":"8168862277","EMAIL":"chrisokeke8@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/623","FULL_NAME":"OLATEJU MICHEAL KEHINDE GABRIEL","FIRST_NAME":"OLATEJU MICHEAL KEHINDE","SURNAME":"GABRIEL","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"M","DOB":"15 Jun 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"35 GIWA ROAD, BARNAWA PHASE 2","MUM_PHONE":"8026666998","DAD_PHONE":"8052797117","EMAIL":"treasure4sadekemi@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/622","FULL_NAME":"OMOTOLA BETHEL TAIWO GABRIEL","FIRST_NAME":"OMOTOLA BETHEL TAIWO","SURNAME":"GABRIEL","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"15 Jun 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"35 GIWA ROAD, BARNAWA PHASE 2","MUM_PHONE":"8026666998","DAD_PHONE":"8052797117","EMAIL":"treasure4sadekemi@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/628","FULL_NAME":"JAYANMA HAILEY OKAFOR","FIRST_NAME":"JAYANMA HAILEY","SURNAME":"OKAFOR","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"20 Nov 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 18 KEFFI ROAD, BARNAWA KADUNA","MUM_PHONE":"8137278148","DAD_PHONE":"8160636558","EMAIL":"","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/631","FULL_NAME":"CHINONYEREM JASMINE JOSIAH-EKE","FIRST_NAME":"CHINONYEREM JASMINE","SURNAME":"JOSIAH-EKE","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"03 Feb 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 12, YERINA STR, UNGWANBORO, KADUNA","MUM_PHONE":"8060390257","DAD_PHONE":"7036148430","EMAIL":"chinwendueke1@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/634","FULL_NAME":"SAMANTHA SANEIT CYRIL","FIRST_NAME":"SAMANTHA SANEIT","SURNAME":"CYRIL","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"24TH FEB 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 26 CMBU RD. NACB QTRS BARNAWA G.R.A. KADUNA","MUM_PHONE":"9021530193","DAD_PHONE":"8029004763","EMAIL":"cyril.afuwai@kasu.edu.ng","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/636","FULL_NAME":"ANNAIAH CHIZARAM EZE","FIRST_NAME":"ANNAIAH CHIZARAM","SURNAME":"EZE","CLASS":"RECEPTION","SECTION":"RECEPTION CHARLES BABAGE CLASS","GENDER":"F","DOB":"1ST MAR 2024","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"55 KIANA CRESCENT NBTE QUARTERS NARAYI HIGH COST","MUM_PHONE":"8164502892","DAD_PHONE":"8133619350","EMAIL":"ezevictor84@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/574","FULL_NAME":"LIAM ENYO-OJO MAKOLO","FIRST_NAME":"LIAM ENYO-OJO","SURNAME":"MAKOLO","CLASS":"PRE K","SECTION":"","GENDER":"M","DOB":"13TH AUG, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 6 RIMA ROAD CHALLAWA BARNAWA KADUNA","MUM_PHONE":"8062104966","DAD_PHONE":"7083766665","EMAIL":"makolofriday85@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/594","FULL_NAME":"MEGHAN AIGBOKHAI IGBAFE","FIRST_NAME":"MEGHAN","SURNAME":"AIGBOKHAI IGBAFE","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"7TH AUG, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"nigerian","ADDRESS":"PLOT 41 BLOCK B CORNER SHOP, FEDERAL LOW COST OPP RCCG BARNAWA KADUNA","MUM_PHONE":"8063182253","DAD_PHONE":"8036350191","EMAIL":"inspiredhaji@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/578","FULL_NAME":"NINA FAITH DAUDA","FIRST_NAME":"NINA FAITH","SURNAME":"DAUDA","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"2ND MAR, 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 4 BUBA CLOSE MEDIUM INCOME EST.KADUNA","MUM_PHONE":"7038516772 8080614633","DAD_PHONE":"8034532942","EMAIL":"jimkuta.dauda@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/600","FULL_NAME":"CHIDINMA AJUNWA","FIRST_NAME":"CHIDINMA","SURNAME":"AJUNWA","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"23RD NOV, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"2A LIBYA CRESCENT BARNAWA KADUNA","MUM_PHONE":"8060733066","DAD_PHONE":"7083219915","EMAIL":"ijpretty18@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/583","FULL_NAME":"CHIAMAKA EMERALD ODEDE","FIRST_NAME":"CHIAMAKA EMERALD","SURNAME":"ODEDE","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"AUG 5TH, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"CHINESE EST, BEHIND MARKAFI QTRS AGWA KADUNA","MUM_PHONE":"8031153017","DAD_PHONE":"8068921899","EMAIL":"jamesjennifer@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/599","FULL_NAME":"KAITICHUKWU DARIAN CHIMNANU","FIRST_NAME":"KAITICHUKWU DARIAN","SURNAME":"CHIMNANU","CLASS":"PRE K","SECTION":"","GENDER":"M","DOB":"19TH DEC, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"MAKARFI SRT. BARNAWA HIGH COST","MUM_PHONE":"8144667163","DAD_PHONE":"8069462443","EMAIL":"nanuroyale@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/602","FULL_NAME":"TOVIA AYOMIKUN OYEBAMIJI","FIRST_NAME":"TOVIA AYOMIKUN","SURNAME":"OYEBAMIJI","CLASS":"PRE K","SECTION":"","GENDER":"M","DOB":"15TH DEC, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"10 GALMA ROAD NARAYI H/COST","MUM_PHONE":"7033713918","DAD_PHONE":"7060450151","EMAIL":"tibosomex@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/603","FULL_NAME":"IFECHUKWU DANIELLA NNAEMEKA","FIRST_NAME":"IFECHUKWU DANIELLA","SURNAME":"NNAEMEKA","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"6TH OCT, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 ZION STREET NARAYI KAD","MUM_PHONE":"8069074489","DAD_PHONE":"8030563303","EMAIL":"anthonia131@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/608","FULL_NAME":"DANIELLA OLUWATAMILORE OLANIYAN","FIRST_NAME":"DANIELLA OLUWATAMILORE","SURNAME":"OLANIYAN","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"17TH MAY, 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLK 5 FLAT RAILWAY EST KADUNA","MUM_PHONE":"8034731496","DAD_PHONE":"8038373580","EMAIL":"talk2tinuke2003@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/620","FULL_NAME":"JAYNA ZINACHIDINMA KENNETH","FIRST_NAME":"JAYNA ZINACHIDINMA","SURNAME":"KENNETH","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"12TH JAN. 2023","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"SUITE 3 ZADINA PLAZA ALI-AKILU ROAD, BARNAWA","MUM_PHONE":"7030487736","DAD_PHONE":"8037313872","EMAIL":"arc.kenn@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/621","FULL_NAME":"BEULAH OREOFE ODEYEMI","FIRST_NAME":"BEULAH OREOFE","SURNAME":"ODEYEMI","CLASS":"PRE K","SECTION":"","GENDER":"F","DOB":"28 Oct 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"FLAT 6 BLOCK A RAILWAY SENIOR QTRS STATION RD KADUNA.","MUM_PHONE":"8069065401","DAD_PHONE":"8035988543","EMAIL":"aodeyemi@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/570","FULL_NAME":"ANSEL-ERIC OCHE AJEH","FIRST_NAME":"ANSEL-ERIC OCHE","SURNAME":"AJEH","CLASS":"KG 1","SECTION":"","GENDER":"M","DOB":"28TH OCT, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"DD 3 ZAMBIA CRESCENT BARNAWA KADUNA","MUM_PHONE":"8038886848","DAD_PHONE":"8061680056","EMAIL":"ajehadaje2@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/555","FULL_NAME":"DELIA UFEDO-OJO ODUMU","FIRST_NAME":"DELIA UFEDO-OJO","SURNAME":"ODUMU","CLASS":"KG 1","SECTION":"","GENDER":"F","DOB":"26TH MAY 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 27 USMAN JIBRIL ROAD NARAYI HIGH COST","MUM_PHONE":"8033890991","DAD_PHONE":"8177492331","EMAIL":"jimeprettyjnr@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/568","FULL_NAME":"NIFEMI NATHAN ALIMI","FIRST_NAME":"NIFEMI NATHAN","SURNAME":"ALIMI","CLASS":"KG 1","SECTION":"","GENDER":"M","DOB":"22ND OCT, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 BARNAWA CLOSE, BARNAWA KADUNA","MUM_PHONE":"8067363386","DAD_PHONE":"8036965702","EMAIL":"adenikerosulu@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/572","FULL_NAME":"CHISOM ELIZABETH EZUGWU","FIRST_NAME":"CHISOM ELIZABETH","SURNAME":"EZUGWU","CLASS":"KG 1","SECTION":"","GENDER":"F","DOB":"1ST DEC, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"312 ARTILERY REGIMENT, KALAPANZIN BARRACKS, KADUNA","MUM_PHONE":"8065796463","DAD_PHONE":"8038577809","EMAIL":"findsweetnene@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/566","FULL_NAME":"ADANNE AUDREY CHINEDU ONYIA","FIRST_NAME":"ADANNE AUDREY","SURNAME":"CHINEDU ONYIA","CLASS":"KG 1","SECTION":"","GENDER":"F","DOB":"7TH APR, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 6 RAHAMA RD BARNAWA KADUNA","MUM_PHONE":"8101886661","DAD_PHONE":"8037888842","EMAIL":"anthonygracie20@gmial.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/575","FULL_NAME":"JAYDEN OVIE RICHARD","FIRST_NAME":"JAYDEN OVIE","SURNAME":"RICHARD","CLASS":"KG 1","SECTION":"","GENDER":"M","DOB":"3RD JUL 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"AIRFORCE BASE KADUNA JD QTRS BLK 3 RM 6","MUM_PHONE":"9159628346","DAD_PHONE":"7032230543","EMAIL":"oviedo4all@yahoo.co.uk","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/577","FULL_NAME":"HAJARA SULTANA JAMILU BALA","FIRST_NAME":"HAJARA SULTANA","SURNAME":"JAMILU BALA","CLASS":"KG 1","SECTION":"","GENDER":"F","DOB":"23RD OCT, 2021","RELIGION":"MUSLIM","NATIONALITY":"NIGERIAN","ADDRESS":"NO 5B GURARA CLOSE BARNAWA KADUNA","MUM_PHONE":"7036017212","DAD_PHONE":"8059800111","EMAIL":"ummietofa015@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/579","FULL_NAME":"JESSE OLAMIDE FADIPE","FIRST_NAME":"JESSE OLAMIDE","SURNAME":"FADIPE","CLASS":"KG 1","SECTION":"","GENDER":"M","DOB":"7TH DEC 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"AGRIC QTRS  OPP HAMONY HOSPITAL","MUM_PHONE":"8064508012","DAD_PHONE":"8064492011","EMAIL":"lanrefadipe@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/614","FULL_NAME":"CHISOM ANNABEL RICHARD-UGWUADU","FIRST_NAME":"CHISOM ANNABEL","SURNAME":"RICHARD-UGWUADU","CLASS":"KG 1","SECTION":"","GENDER":"F","DOB":"8TH MARCH, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"33A UNITY AVENUE , PHASE 1, UNGWAN MAIGERO","MUM_PHONE":"8130677609","DAD_PHONE":"8094855095","EMAIL":"beckrich30@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/632","FULL_NAME":"EBUBEDIKE DANIEL OKOYE","FIRST_NAME":"EBUBEDIKE DANIEL","SURNAME":"OKOYE","CLASS":"KG 1","SECTION":"","GENDER":"M","DOB":"6TH AUG, 2022","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"YAKOWA STREET PIPEPLIE ROAD KADUNA","MUM_PHONE":"7038246024","DAD_PHONE":"8139163738","EMAIL":"dainmoregloballmk@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/533","FULL_NAME":"AB'ONDU AARON ODUMA","FIRST_NAME":"AB'ONDU AARON","SURNAME":"ODUMA","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"26TH OCT, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"12 USMAN MUAZU RD H//COST BARNAWA KADUNa","MUM_PHONE":"8036051785","DAD_PHONE":"8030524857","EMAIL":"soduma2015@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/541","FULL_NAME":"ADRIEL OHIOMOBA ARMSTRONG-AMU","FIRST_NAME":"ADRIEL OHIOMOBA","SURNAME":"ARMSTRONG-AMU","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"10TH MAR, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"7 BALARABE MUSA RD NARAYI H/COST KADUNA","MUM_PHONE":"8022227068","DAD_PHONE":"80299997072","EMAIL":"udoka.esonanjor'ng.airtel.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/545","FULL_NAME":"BESSIE MILDRED DANIEL BUKU","FIRST_NAME":"BESSIE MILDRED","SURNAME":"DANIEL BUKU","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"8TH APR 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 14/23 GHANA RD BARNAWA KADUNA","MUM_PHONE":"8036951034","DAD_PHONE":"8050602999","EMAIL":"gracebuku16@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/580","FULL_NAME":"CHIMAOBI JOSHUA JOSIAH-EKE","FIRST_NAME":"CHIMAOBI JOSHUA","SURNAME":"JOSIAH-EKE","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"7TH JAN, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 12, YERINA STR, UNGWANBORO, KADUNA","MUM_PHONE":"8060390257","DAD_PHONE":"7036148430","EMAIL":"chinwendueke1@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/565","FULL_NAME":"GREAT OGIE ALBERT","FIRST_NAME":"GREAT OGIE","SURNAME":"ALBERT","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"25TH NOV, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 96 POST OFFICE RD HIGH COST KADUNA","MUM_PHONE":"7039832936","DAD_PHONE":"7035386573","EMAIL":"prinztalker@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/587","FULL_NAME":"TEMILADE BENEDICTA OWOSO","FIRST_NAME":"TEMILADE BENEDICTA","SURNAME":"OWOSO","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"2ND OCT, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"20 MOROCCO STR, BARNAWA KADUNA","MUM_PHONE":"8024609398","DAD_PHONE":"8037518777","EMAIL":"adesola.owoso@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/542","FULL_NAME":"HANANI HYENMEN YANOM-YACKSON","FIRST_NAME":"HANANI HYENMEN","SURNAME":"YANOM-YACKSON","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"7TH JUN, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 7 FAITH AVENUE, NARAYI  H/COST","MUM_PHONE":"8183749214","DAD_PHONE":"8183749214","EMAIL":"yackson.yanom@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/618","FULL_NAME":"IKECHI KINGDAVID ARUKWE","FIRST_NAME":"IKECHI KINGDAVID","SURNAME":"ARUKWE","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"14TH DEC. 2025","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"D19 YAKWO STREET BARNAWA KADUNA","MUM_PHONE":"8036913702","DAD_PHONE":"8039405168","EMAIL":"ngoziarukwe@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/560","FULL_NAME":"ELIORA OCHUA EKHASEMOMHE","FIRST_NAME":"ELIORA OCHUA","SURNAME":"EKHASEMOMHE","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"24TH SEPT 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"15 YOHANNA MADAKI STR SABO GRA KADUNA","MUM_PHONE":"7034371846","DAD_PHONE":"8061256606","EMAIL":"liatu.david89@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/532","FULL_NAME":"CHIBUIKEM ELVIS CHINEDU ONYIA","FIRST_NAME":"CHIBUIKEM ELVIS","SURNAME":"CHINEDU ONYIA","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"4TH JUL, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 6 RAHAMA RD BARNAWA KADUNA","MUM_PHONE":"8101886661","DAD_PHONE":"8037888842","EMAIL":"anthonygracie20@gmial.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/581","FULL_NAME":"ISABELLA OLUWADAMILARE ADEYEMI","FIRST_NAME":"ISABELLA OLUWADAMILARE","SURNAME":"ADEYEMI","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"16TH MAR, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"56, ABDULKADIRI STR BARNAWA","MUM_PHONE":"8039245020","DAD_PHONE":"8033686547","EMAIL":"ritaodinigwe@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/597","FULL_NAME":"BRYAN AYOMIPOSI AYORINDE","FIRST_NAME":"BRYAN AYOMIPOSI","SURNAME":"AYORINDE","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"21ST OCT, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 1 CONGO STR BARNAWA, KADUNA","MUM_PHONE":"8065637141","DAD_PHONE":"8130521584","EMAIL":"st4royalty@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/604","FULL_NAME":"FIYADA MARKUS FAKUTA","FIRST_NAME":"FIYADA","SURNAME":"MARKUS FAKUTA","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"31ST MAY, 2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"UNGWAR MAIGERO, LEARNERS INT/L SCHOOL SARKI LINE","MUM_PHONE":"8065839083","DAD_PHONE":"8064983263","EMAIL":"faliyamarkus@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/536","FULL_NAME":"TORNUBARI TEHILLAH AMARACHI DILOSI","FIRST_NAME":"TORNUBARI TEHILLAH AMARACHI","SURNAME":"DILOSI","CLASS":"KG2","SECTION":"","GENDER":"F","DOB":"12thSEPT, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 4 DOKAJE ST. UNG-PAMA SABON TASHA","MUM_PHONE":"9036148965","DAD_PHONE":"8168867722","EMAIL":"tinubaridilo@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/551","FULL_NAME":"MICHAEL EBUBECHUKWU AMADI","FIRST_NAME":"MICHAEL EBUBECHUKWU","SURNAME":"AMADI","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"17TH APR,2021","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 9 Akamsilvannus High Cost Kaduna","MUM_PHONE":"8151209340","DAD_PHONE":"8036988603","EMAIL":"passionnnenna@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/549","FULL_NAME":"CALEB CHIDUBEM OKIKE","FIRST_NAME":"CALEB CHIDUBEM","SURNAME":"OKIKE","CLASS":"KG2","SECTION":"","GENDER":"M","DOB":"3RD JUL, 2021.","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 44 BOHAGO STR DUSA LINE AGWA KUDENDA","MUM_PHONE":"8037176533","DAD_PHONE":"8066017532","EMAIL":"victoryokike87@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/547","FULL_NAME":"PRAISE ONYEKACHI OGBA","FIRST_NAME":"PRAISE ONYEKACHI","SURNAME":"OGBA","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"13TH JUL, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 4 WINNERS CRESCENT BARNAWA KADUNA","MUM_PHONE":"8034964184","DAD_PHONE":"8066126811","EMAIL":"kelvinbash@yahoo.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/543","FULL_NAME":"ADORA TOLUWANIMI OLAYINKA","FIRST_NAME":"ADORA TOLUWANIMI","SURNAME":"OLAYINKA","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"F","DOB":"15TH JUL, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLOCK 2 FLAT 2 JO QRTS NAF BASE KADUNA","MUM_PHONE":"8181679936","DAD_PHONE":"9059276448","EMAIL":"kemideborah61@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/500","FULL_NAME":"GAVRIELLA OJOCHELE GANDHI","FIRST_NAME":"GAVRIELLA OJOCHELE","SURNAME":"GANDHI","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"F","DOB":"21ST DEC 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 37 UGANDA STREET BARNAWA KADUNA","MUM_PHONE":"8038415151","DAD_PHONE":"8035955644","EMAIL":"gandhiadamu@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/627","FULL_NAME":"OLUWADAMILARE AKOSILE","FIRST_NAME":"OLUWADAMILARE","SURNAME":"AKOSILE","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"5TH AUG 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 10 SIR STANZA STREET, OFF PIPELINE ROAD, NAFDAC KADUNA","MUM_PHONE":"8035778204","DAD_PHONE":"8030911441","EMAIL":"aishaakosile123@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/586","FULL_NAME":"ADEDAMOLA SOLOMON OWOSO","FIRST_NAME":"ADEDAMOLA SOLOMON","SURNAME":"OWOSO","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"23RD SEPT, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"20 MOROCCO,STR BARNAWA, KADUNA","MUM_PHONE":"8037518777","DAD_PHONE":"","EMAIL":"adesola.owoso@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/598","FULL_NAME":"CHIMBUSOMMA DAVETTA CHIMNANU","FIRST_NAME":"CHIMBUSOMMA DAVETTA","SURNAME":"CHIMNANU","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"F","DOB":"16TH OCT, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"MAKARFI SRT. BARNAWA HIGH COST","MUM_PHONE":"8144667163","DAD_PHONE":"8069462443","EMAIL":"nanuroyale@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/601","FULL_NAME":"PRINCE CHISOM IGWE","FIRST_NAME":"PRINCE CHISOM","SURNAME":"IGWE","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"19TH AUG, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 7H LOKOJA CRESCENT BARNAWA","MUM_PHONE":"7031388600","DAD_PHONE":"8036047007","EMAIL":"sarahigwe4real@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/511","FULL_NAME":"CHIZITELU DANIEL OFOKAJA","FIRST_NAME":"CHIZITELU DANIEL","SURNAME":"OFOKAJA","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"28TH NOV 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 5 PROSPERITY LAYOUT U/BORO SABO KADUNA","MUM_PHONE":"7030316302","DAD_PHONE":"8038859247","EMAIL":"florawhyte54@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/593","FULL_NAME":"MICHELLE CHIZARA EZEMA","FIRST_NAME":"MICHELLE CHIZARA","SURNAME":"EZEMA","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"F","DOB":"9TH AUG, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"12 MERCY SRT MEDIUM EST KAKURI, KADUNA","MUM_PHONE":"8023238763","DAD_PHONE":"8023179682 8095959494","EMAIL":"ferdinandezema@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/613","FULL_NAME":"ESOMCHUKWU DAVID RICHARD-UGWUADU","FIRST_NAME":"ESOMCHUKWU DAVID","SURNAME":"RICHARD-UGWUADU","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"6TH JAN 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"33A UNITY AVENUE , PHASE 1, UNGWAN MAIGERO","MUM_PHONE":"8130677609","DAD_PHONE":"8094855095","EMAIL":"beckrich30@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/630","FULL_NAME":"GOLD ISAAC NSE","FIRST_NAME":"GOLD ISAAC","SURNAME":"NSE","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"M","DOB":"19TH SEP, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"AGWA NEW EXTENSION OPPOSITE TRIKANIA KADUNA","MUM_PHONE":"08169326097","DAD_PHONE":"08169075533","EMAIL":"nsebubbles15@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/633","FULL_NAME":"CHIKAIMA RITA OKOYE","FIRST_NAME":"CHIKAIMA RITA","SURNAME":"OKOYE","CLASS":"YEAR 1","SECTION":"YEAR ONE JONAS SALK","GENDER":"F","DOB":"4TH JUL 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"YAKOWA STREET PIPEPLIE ROAD KADUNA","MUM_PHONE":"7038246024","DAD_PHONE":"8139163738","EMAIL":"dainmoregloballmk@yahoo.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/507","FULL_NAME":"JASON OJIMA-OJO CHARLES","FIRST_NAME":"JASON OJIMA-OJO","SURNAME":"CHARLES","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"6TH NOV 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 7 AKAMS SLYVANUS STR PIPELINE BAYAN DUTSE NARAYI KADUNA","MUM_PHONE":"7060733627","DAD_PHONE":"8050577830","EMAIL":"abugrace77@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/528","FULL_NAME":"ODUMU BENNETT UREDO OJO ODUMU","FIRST_NAME":"ODUMU BENNETT UREDO OJO","SURNAME":"ODUMU","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"3RD JUL 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 27 USMAN JIBRIL RD KADUNA","MUM_PHONE":"8033890991","DAD_PHONE":"8177492551","EMAIL":"jimeprettyjnr@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/530","FULL_NAME":"CHIMSIMDI ISABELLA NNAEMEKA","FIRST_NAME":"CHIMSIMDI ISABELLA","SURNAME":"NNAEMEKA","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"F","DOB":"3rd Mar, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 ZION STREET NARAYI KAD","MUM_PHONE":"8069074489","DAD_PHONE":"8030563303","EMAIL":"anthonia131@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/510","FULL_NAME":"CHIKAIMA DANIELLA OFOKAJA","FIRST_NAME":"CHIKAIMA  DANIELLA","SURNAME":"OFOKAJA","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"F","DOB":"28TH NOV 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 5 PROSPERITY LAYOUT U/BORO SABO KADUNA","MUM_PHONE":"7030316302","DAD_PHONE":"8038859247","EMAIL":"florawhyte54@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/522","FULL_NAME":"SOMTOCHUKWU BERNICE EZUGWU","FIRST_NAME":"SOMTOCHUKWU BERNICE","SURNAME":"EZUGWU","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"F","DOB":"6TH FEB, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"MOQ 312 KALANPANZI BARRACKS KAKURI KADUNA","MUM_PHONE":"8065796463","DAD_PHONE":"8038597809","EMAIL":"findsweetnene@yahoo.ca","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/520","FULL_NAME":"ALFRED BASSI SULEIMAN","FIRST_NAME":"ALFRED BASSI","SURNAME":"SULEIMAN","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"25TH JUN, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLK 1 FLAT 6 RAILWAY EST DOWN QTRS KADUNA","MUM_PHONE":"8107861647","DAD_PHONE":"8030959522","EMAIL":"rahilamshelia5@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/496","FULL_NAME":"NKEMAKOLAM ROMAN OMEYOMA","FIRST_NAME":"NKEMAKOLAM ROMAN","SURNAME":"OMEYOMA","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"12TH OCT, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 LIBJA CRESCENT BEHIND REDEEM SEC SCHOOL BAR. KADUNA","MUM_PHONE":"7039241891","DAD_PHONE":"","EMAIL":"chychichychai@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/518","FULL_NAME":"OSEMUDIAHMEN DAVID EHIMEGBE","FIRST_NAME":"OSEMUDIAHMEN DAVID","SURNAME":"EHIMEGBE","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"17TH DEC, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"8A LOKOJA STR OFF GONGOLA RD BARNAWA KADUNA","MUM_PHONE":"7034194065","DAD_PHONE":"8035302667","EMAIL":"prifford@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/506","FULL_NAME":"KAYLA UFEDO'OJO AGADA","FIRST_NAME":"KAYLA UFEDO'OJO","SURNAME":"AGADA","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"F","DOB":"5TH SEP, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 2 MOSES AGADA CLOSE MARABA RIDO KADUNA","MUM_PHONE":"8083661967","DAD_PHONE":"8028620851","EMAIL":"elameyiagada@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/584","FULL_NAME":"CHUKWUEMEKE EMMANUEL ODEDE","FIRST_NAME":"CHUKWUEMEKE EMMANUEL","SURNAME":"ODEDE","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"19TH JAN, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"CHINESE EST. BEHIND MARKARFI QTRS AGWA KADUNA","MUM_PHONE":"8031153017","DAD_PHONE":"8068921899","EMAIL":"jamesjennifer@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/503","FULL_NAME":"JATHNIEL OJIMA-OJO MAKOLO","FIRST_NAME":"JATHNIEL OJIMA-OJO","SURNAME":"MAKOLO","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"M","DOB":"1ST MAY, 2020","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 KAGORO STR U/MAIGERO KADUNA","MUM_PHONE":"7034676833","DAD_PHONE":"8067392015","EMAIL":"atamaseth6@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/615","FULL_NAME":"JOANNA PETER","FIRST_NAME":"JOANNA","SURNAME":"PETER","CLASS":"YEAR 1","SECTION":"YEAR ONE QUEEN ELIZABETH","GENDER":"F","DOB":"6TH APR 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 48A UNITY AVENUE, ANGWAN MAIGERO KADUNA","MUM_PHONE":"8032101353","DAD_PHONE":"8032908027","EMAIL":"mimieatahiru@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/461","FULL_NAME":"HALIMA JAMILU BALA","FIRST_NAME":"HALIMA","SURNAME":"JAMILU BALA","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"21ST JAN, 2019","RELIGION":"MUSLIM","NATIONALITY":"NIGERIAN","ADDRESS":"NO 5B GURARA CLOSE BARNAWA KADUNA","MUM_PHONE":"7036017212","DAD_PHONE":"8059800111","EMAIL":"ummietofa015@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/441","FULL_NAME":"TONYA AYOMITOMIWA OYEBAMIJI","FIRST_NAME":"TONYA AYOMITOMIWA","SURNAME":"OYEBAMIJI","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"21ST SEPT, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 GALMA ROAD NARAYI H/COST KADUNA`","MUM_PHONE":"7033713918","DAD_PHONE":"7060450151","EMAIL":"tibosomex@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/499","FULL_NAME":"FAZIL OLAMIDE OLATUNJI","FIRST_NAME":"FAZIL OLAMIDE","SURNAME":"OLATUNJI","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"M","DOB":"13TH APR, 2019","RELIGION":"MUSLIM","NATIONALITY":"NIGERIAN","ADDRESS":"NO 2 BAMIYI CLOSE, MEDIUM EST. BAR. KADUNA","MUM_PHONE":"7039026281","DAD_PHONE":"8034099809","EMAIL":"kafayatadeshina66@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/502","FULL_NAME":"MEKAYLA AIGBOKHAI IGBAFE","FIRST_NAME":"MEKAYLA","SURNAME":"AIGBOKHAI IGBAFE","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"15TH NOV 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"PLOT 41 BLOCK B CORNER SHOP, FEDERAL LOW COST OPP RCCG BARNAWA KADUNA","MUM_PHONE":"8063182253","DAD_PHONE":"8036350191","EMAIL":"inspiredhaji@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/494","FULL_NAME":"BREINDEL CHIJINDUM EZEH","FIRST_NAME":"BREINDEL CHIJINDUM","SURNAME":"EZEH","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"M","DOB":"29TH JUN, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"36/38 GHANA STREET BARNAWA KADUNA","MUM_PHONE":"8060089720","DAD_PHONE":"8032310881","EMAIL":"trendybless86@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/521","FULL_NAME":"ZARA TIARAOLUWA OLAOYE","FIRST_NAME":"ZARA TIARAOLUWA","SURNAME":"OLAOYE","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"1ST FEB, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 31 MALAWI CRESCENT BARNAWA","MUM_PHONE":"8060362285","DAD_PHONE":"8063959434","EMAIL":"leoebony2@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/475","FULL_NAME":"KAYLA GLORY DAUDA","FIRST_NAME":"KAYLA GLORY","SURNAME":"DAUDA","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"2ND FEB, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"JOHN TANKO ROAD GBAGYI VILLA KADUNA","MUM_PHONE":"8034532942","DAD_PHONE":"8080614633","EMAIL":"jimkuta@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/553","FULL_NAME":"PEACE CHIDINMA OKIKE","FIRST_NAME":"PEACE CHIDINMA","SURNAME":"OKIKE","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"22ND JAN, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 44 BOHAGO STR DUSA LINE KADUNA","MUM_PHONE":"8066017532","DAD_PHONE":"8037176533","EMAIL":"victoryokike87@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/554","FULL_NAME":"MERCY CHINONSO OKIKE","FIRST_NAME":"MERCY CHINONSO","SURNAME":"OKIKE","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"22ND JAN, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 44 BOHAGO STR DUSA LINE KADUNA","MUM_PHONE":"8066017532","DAD_PHONE":"8037176533","EMAIL":"victoryokike87@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/563","FULL_NAME":"OSINACHI DANIEL AJUNWA","FIRST_NAME":"OSINACHI DANIEL","SURNAME":"AJUNWA","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"M","DOB":"28TH JAN, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"2A LIBYA CRESCENT BARNAWA KADUNA","MUM_PHONE":"8060733066","DAD_PHONE":"7083219915","EMAIL":"ijpretty18@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/582","FULL_NAME":"DAVID OLUWAMAKINDE OLANIYAN","FIRST_NAME":"DAVID OLUWAMAKINDE","SURNAME":"OLANIYAN","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"M","DOB":"22ND AUG, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLK 5 FLAT RAILWAY EST KADUNA","MUM_PHONE":"8034731496","DAD_PHONE":"8038373580","EMAIL":"talk2tinuke2003@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/582","FULL_NAME":"PENIEL OLUWAPELUMI AYORINDE","FIRST_NAME":"PENIEL OLUWAPELUMI","SURNAME":"AYORINDE","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"24TH NOV, 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 1  CONGO STR BARNAWA KADUNA","MUM_PHONE":"8065637141","DAD_PHONE":"8130521584","EMAIL":"st4royalty@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/605","FULL_NAME":"APATI MARKUS FAKUTA","FIRST_NAME":"APATI","SURNAME":"MARKUS FAKUTA","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"M","DOB":"28TH AUG, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"UNGWAR MAIGERO, LEARNERS INT/L SCHOOL SARKI LINE","MUM_PHONE":"8065839083","DAD_PHONE":"8064983263","EMAIL":"faliyamarkus@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/619","FULL_NAME":"CHARIS CHIKAIMA KENNETH","FIRST_NAME":"CHARIS CHIKAIMA","SURNAME":"KENNETH","CLASS":"YEAR 2","SECTION":"YEAR TWO BENJAMIN FRANKLIN","GENDER":"F","DOB":"20TH DEC 2019","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 32 POST OFFICE ROAD, NARAYI HIGHCOST KADUNA","MUM_PHONE":"8037313872","DAD_PHONE":"7030487736","EMAIL":"arc.kenn@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/607","FULL_NAME":"GODSPOWER OLUBOJO CHRISTOPHER","FIRST_NAME":"GODSPOWER OLUBOJO","SURNAME":"CHRISTOPHER","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"M","DOB":"10TH JUL, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"R2 SPQ 87 GAJERE STR. UNGWAN MAGEIRO KADUNA","MUM_PHONE":"7030265284","DAD_PHONE":"8037786266","EMAIL":"","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/432","FULL_NAME":"ANGEL AMARACHI AMADI","FIRST_NAME":"ANGEL AMARACHI","SURNAME":"AMADI","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"F","DOB":"9TH MAY,2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 9 AKM SILVANUSNARAYI HIGH KADUNA","MUM_PHONE":"8151209340","DAD_PHONE":"8036988603","EMAIL":"passionnnenna@yahoo.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/567","FULL_NAME":"NOROH VICTORY PAM DACHOMO","FIRST_NAME":"NOROH VICTORY","SURNAME":"PAM DACHOMO","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"F","DOB":"27TH NOV, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLOCK 34 OFF ALLEN SANUEL LANE MEDIUM INCOME EST BARNAWA","MUM_PHONE":"8067443059","DAD_PHONE":"8035867959","EMAIL":"glodachomo@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/476","FULL_NAME":"BERNICE CHIKANYIMA EZEH","FIRST_NAME":"BERNICE CHIKANYIMA","SURNAME":"EZEH","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"F","DOB":"20TH OCT, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"36/38 GHANA STREET BARNAWA KADUNA","MUM_PHONE":"8060089720","DAD_PHONE":"8032310881","EMAIL":"trendybless86@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/467","FULL_NAME":"SAMARA KYANGCHAT BOBAI","FIRST_NAME":"SAMARA KYANGCHAT","SURNAME":"BOBAI","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"F","DOB":"19TH OCT, 2018.","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 9 YUSUF MOHAMMED RD NARAYI H/COST KADUNA","MUM_PHONE":"8036170153","DAD_PHONE":"8066541914","EMAIL":"lindabobai13@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/557","FULL_NAME":"GRACIOUS AKINBOLAJI OJO","FIRST_NAME":"GRACIOUS AKINBOLAJI","SURNAME":"OJO","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"M","DOB":"30TH MAY, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"AM 7 GADANI STR DEEPER LIFE LINE TRIKANIA KADUNA","MUM_PHONE":"7032236374","DAD_PHONE":"8036250513","EMAIL":"opebabs2002@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/466","FULL_NAME":"ANDERSON BASSI SULEIMAN","FIRST_NAME":"ANDERSON BASSI","SURNAME":"SULEIMAN","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"M","DOB":"19TH AUG 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"BLK 1, FLAT 6, RAILWAY EST. DOWN QTRS KADUNA","MUM_PHONE":"8107861647","DAD_PHONE":"8030959522","EMAIL":"rahilamshelia5@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/402","FULL_NAME":"DORCAS EROMOMENE EHIMEGBE","FIRST_NAME":"DORCAS EROMOMENE","SURNAME":"EHIMEGBE","CLASS":"YEAR 3","SECTION":"YEAR THREE WILLIAM HARVEY","GENDER":"F","DOB":"18TH DEC. 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"8 A LOKOJA STREET OFF GONGOLA RD BARNAWA KADUNA","MUM_PHONE":"7034194065","DAD_PHONE":"8035302667","EMAIL":"prifford@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/472","FULL_NAME":"IFEOLUWA JEMIMAH FADIPE","FIRST_NAME":"IFEOLUWA JEMIMAH","SURNAME":"FADIPE","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"F","DOB":"23RD NOV, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 2 TAIYE STR BARNAWA BY HARMONY HOSPITAL KADUNA","MUM_PHONE":"8064508012","DAD_PHONE":"8064492011","EMAIL":"lanrefadipe@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/569","FULL_NAME":"SALEM AMEH JAMES","FIRST_NAME":"SALEM","SURNAME":"AMEH JAMES","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"M","DOB":"1ST SEPT, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 SANI SAMBO STREET NAMAIGERO KADUNA","MUM_PHONE":"8033933132","DAD_PHONE":"8033708085","EMAIL":"samuelameh2005@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/459","FULL_NAME":"KAMTOCHUKWU DAVID OFOKAJA","FIRST_NAME":"KAMTOCHUKWU DAVID","SURNAME":"OFOKAJA","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"M","DOB":"21ST MAY, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 5 PROSPERITY LAYOUT U/BORO SABO KADUNA","MUM_PHONE":"7030316302","DAD_PHONE":"8038859247","EMAIL":"florawhyte54@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2026/364","FULL_NAME":"DAVID OLUWATOBI AJANI","FIRST_NAME":"DAVID OLUWATOBI","SURNAME":"AJANI","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"M","DOB":"1ST MAY, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"8. NASARAWA STRET, AGWA NEW EXTENSION KADUNA","MUM_PHONE":"08034994532","DAD_PHONE":"8035714671","EMAIL":"bankky2014@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/558","FULL_NAME":"MAKAYLA EMESOMI EKHASEMOMHE","FIRST_NAME":"MAKAYLA EMESOMI","SURNAME":"EKHASEMOMHE","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"F","DOB":"9TH AUG, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"15 YOHANNA MADAKI STR SABO GRA KADUNA","MUM_PHONE":"7034371846","DAD_PHONE":"7061256606","EMAIL":"liatu.david89@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/564","FULL_NAME":"WEALTH AHROBUYEH ALBERT","FIRST_NAME":"WEALTH AHROBUYEH","SURNAME":"ALBERT","CLASS":"YEAR 3","SECTION":"YEAR THREE KARL BENZ","GENDER":"F","DOB":"17TH SEPT, 2018","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 96 POST OFFICE RD NARAYI HIGH COST","MUM_PHONE":"7039832936","DAD_PHONE":"7035386573","EMAIL":"prinztalker@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/534","FULL_NAME":"ENENU ANGEL O. ODUMA","FIRST_NAME":"ENENU ANGEL O.","SURNAME":"ODUMA","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"18TH MAY 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"12 USMAN MUAZU RD H/COST BARNAWA KADUNA","MUM_PHONE":"8036051785","DAD_PHONE":"8030524857","EMAIL":"soduma2015@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/612","FULL_NAME":"DUNAMIS EBUBE EXCELLENCE-JOSHUA","FIRST_NAME":"DUNAMIS EBUBE","SURNAME":"EXCELLENCE-JOSHUA","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"M","DOB":"13TH APR 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"HOUSE 51, ROAD 5, TRIPLE A HOMES, YAKOWA EXPRESS WAY, KADUNA","MUM_PHONE":"09069980493","DAD_PHONE":"09067435981","EMAIL":"iamexcellencejoshua@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/440","FULL_NAME":"TANYA AYOMIPOSI OYEBAMIJI","FIRST_NAME":"TANYA  AYOMIPOSI","SURNAME":"OYEBAMIJI","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"16TH NOV, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 GALMA ROAD, NARAYI H/COST KAD","MUM_PHONE":"7033713918","DAD_PHONE":"NIL","EMAIL":"tibosomex@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/484","FULL_NAME":"ETHAN OZOZA KASAI","FIRST_NAME":"ETHAN OZOZA","SURNAME":"KASAI","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"M","DOB":"20TH JUN,2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 20 GWARI AVENUE BARNAWA KADUNA","MUM_PHONE":"8060906532","DAD_PHONE":"NIL","EMAIL":"infobakearoo@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/359","FULL_NAME":"KAMSIYOCHUKWU JANICE EZUGWU","FIRST_NAME":"KAMSIYOCHUKWU JANICE","SURNAME":"EZUGWU","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"6TH APR,2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"312 ARTILLEY REGIMENT, KALAPANZIN BARRACKS, KADUNA","MUM_PHONE":"8065796463","DAD_PHONE":"8038577809","EMAIL":"findsweetnene@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/537","FULL_NAME":"IREOLUWA BETHEL ODEYEMI","FIRST_NAME":"IREOLUWA BETHEL","SURNAME":"ODEYEMI","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"22ND JAN, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"FLAT 6 BLOCK A RAILWAY SENIOR QTRS STATION RD KADUNA.","MUM_PHONE":"8069065401","DAD_PHONE":"8035988543","EMAIL":"aodeyemi@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/335","FULL_NAME":"TITSAN EMMANUEL I. STEPHEN","FIRST_NAME":"TITSAN EMMANUEL I.","SURNAME":"STEPHEN","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"M","DOB":"11TH JAN. 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 33 LAWAL JAFARU ISA RD NARAYI H/COST KAD.","MUM_PHONE":"7053336055","DAD_PHONE":"8035299233","EMAIL":"fmjoy.stephen@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2017/289","FULL_NAME":"LIONEL ENEMONA MAKOLO","FIRST_NAME":"LIONEL ENEMONA","SURNAME":"MAKOLO","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"M","DOB":"6TH APR 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIA","ADDRESS":"NO 6 RIMA STREET BARNAWA KADUNA","MUM_PHONE":"8062104966","DAD_PHONE":"7038224169","EMAIL":"makolofriday85@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/","FULL_NAME":"MOYOSORE AKOSILE","FIRST_NAME":"MOYOSORE","SURNAME":"AKOSILE","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO. 10 SIR STANZA STREET, OFF PIPELINE ROAD, NAFDAC KADUNA","MUM_PHONE":"8035778204","DAD_PHONE":"8030911441","EMAIL":"aishaakosile123@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/455","FULL_NAME":"CHINEMEREM PEACE ETUKA","FIRST_NAME":"CHINEMEREM PEACE","SURNAME":"ETUKA","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"14TH NOV, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 3 GIWA RD BARNAWA H/COST KAD","MUM_PHONE":"8034852487","DAD_PHONE":"8036192861","EMAIL":"etukaada01@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/562","FULL_NAME":"OLACHI DANIELLA AJUNWA","FIRST_NAME":"OLACHI DANIELLA","SURNAME":"AJUNWA","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"21ST DEC, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"2A LIBYA CRESCENT BARNAWA KADUNA","MUM_PHONE":"8060733066","DAD_PHONE":"7083219915","EMAIL":"ijpretty18@yahoo.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/322","FULL_NAME":"MACKINNEY LEROY DANIEL BUKU","FIRST_NAME":"MACKINNEY LEROY","SURNAME":"DANIEL BUKU","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"M","DOB":"29TH DEC. 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"B24 YAKWO STREET NEW ESTENSION BARNAWA, KADUNE","MUM_PHONE":"8036951034","DAD_PHONE":"8050602999","EMAIL":"gracebuku16@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/256","FULL_NAME":"ANGEL EBOKOWOICHO EMMANUEL","FIRST_NAME":"ANGEL EBOKOWOICHO","SURNAME":"EMMANUEL","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"22ND SEPT, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIA","ADDRESS":"NO 82B JAMAA RD SHAGARI BARNAWA KADUNA","MUM_PHONE":"8036094808","DAD_PHONE":"8036874715","EMAIL":"emmycide4real@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/333","FULL_NAME":"OMOLADE OLUWASEMILORE VICTORIA FOLUGBEMI","FIRST_NAME":"OMOLADE OLUWASEMILORE VICTORIA","SURNAME":"FOLUGBEMI","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"22ND AUG2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIA","ADDRESS":"NO 11 RAHAMA STREET BARNAWA KADUNA","MUM_PHONE":"8039684426","DAD_PHONE":"8066039023","EMAIL":"kems44@yahoo.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/592","FULL_NAME":"ISABELLA KAMSIYOCHUKWU EZEMA","FIRST_NAME":"ISABELLA KAMSIYOCHUKWU","SURNAME":"EZEMA","CLASS":"YEAR 4","SECTION":"YEAR FOUR CHARLES DARWIN","GENDER":"F","DOB":"31ST OCT, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"12 MERCY ST. MEDIUM EST. BARNAWA KADUNA","MUM_PHONE":"8023238763","DAD_PHONE":"8095959494","EMAIL":"ferdinandezema@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/296","FULL_NAME":"JAINA OWO-OJO CHARLES","FIRST_NAME":"JAINA OWO-OJO","SURNAME":"CHARLES","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"13th Oct, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 6 JENUPE RD NARAYI BARNAWA KADUNA","MUM_PHONE":"7060733627","DAD_PHONE":"8050577830","EMAIL":"abugrace77@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/341","FULL_NAME":"CHIMAMANDA PRECIOUS AMADI","FIRST_NAME":"CHIMAMANDA PRECIOUS","SURNAME":"AMADI","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"6th Jul, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"Nigerian","ADDRESS":"NO 9 Akamsilvannus High Cost Kaduna","MUM_PHONE":"8031126976","DAD_PHONE":"8036988603","EMAIL":"passionnnenna@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/408","FULL_NAME":"MELVIN AIGBOKHAI IGBAFE","FIRST_NAME":"MELVIN AIGBOKHAI","SURNAME":"IGBAFE","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"M","DOB":"4TH JUNE, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"PLOT 41 BLOCK B CORNER SHOP, FEDERAL LOW COST OPP RCCG BARNAWA KADUNA","MUM_PHONE":"8063182253","DAD_PHONE":"8036350191","EMAIL":"inspiredhaji@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/337","FULL_NAME":"AMARACHUKWU FRANCES EWUZIE","FIRST_NAME":"AMARACHUKWU FRANCES","SURNAME":"EWUZIE","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"12TH AUG, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"Nigerian","ADDRESS":"NO 1 YAKAWADA STR H/COST BARNAWA KAD","MUM_PHONE":"8037140066","DAD_PHONE":"8033134537","EMAIL":"adakwapatricia03@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/462","FULL_NAME":"TAMILORE DAVID ALIMI","FIRST_NAME":"TAMILORE DAVID","SURNAME":"ALIMI","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"M","DOB":"27TH DEC 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 10 BARNAWA CLOSE, BARNAWA KADUNA","MUM_PHONE":"8067363386","DAD_PHONE":"8036965702","EMAIL":"adenikerosulu@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/298","FULL_NAME":"OLUWADAMILOLA ABIGAIL OYEKANMI","FIRST_NAME":"OLUWADAMILOLA ABIGAIL","SURNAME":"OYEKANMI","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"20th May, 2016.","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"OPP FIRST GATE POWER PLANT TRICANIA KAD","MUM_PHONE":"8036134003","DAD_PHONE":"8033528435","EMAIL":"modupeajayi1@yahoo.co.uk","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/390","FULL_NAME":"HADASSAH ZAHRA DODO","FIRST_NAME":"HADASSAH ZAHRA","SURNAME":"DODO","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"17TH OCT, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 3 DODO CLOSE OFF CHALLAWA CRESCENT BAR. KADUNA","MUM_PHONE":"8036053441","DAD_PHONE":"8062465708","EMAIL":"nanoterah@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/405","FULL_NAME":"JAMIEL ALIENYO ABU","FIRST_NAME":"JAMIEL ALIENYO","SURNAME":"ABU","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"M","DOB":"5TH SEPT, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 7 MAYERE CRESCENT CAMP DAVID STREET, BARNAWA KADUNA","MUM_PHONE":"7031563556","DAD_PHONE":"8039317158","EMAIL":"treasuremeggy@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/487","FULL_NAME":"CHINECHEREM JOANNE JOSIAH-EKE","FIRST_NAME":"CHINECHEREM JOANNE","SURNAME":"JOSIAH-EKE","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"F","DOB":"27TH SEPT, 2015","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 12, YERINA STR, UNGWANBORO, KADUNA","MUM_PHONE":"8060390257","DAD_PHONE":"7036148430","EMAIL":"chinwendueke1@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2023/559","FULL_NAME":"BEZALEL ITSEMHE EKHASEMOMHE","FIRST_NAME":"BEZALEL ITSEMHE","SURNAME":"EKHASEMOMHE","CLASS":"YEAR 5","SECTION":"YEAR FIVE NIKOLA TESLA","GENDER":"M","DOB":"13TH OCT, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"15 YOHANNA MADAKI STR SABO G.R.A","MUM_PHONE":"7034371846","DAD_PHONE":"8061256606","EMAIL":"liatu.david89@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2021/498","FULL_NAME":"ZAHRA OYINKANSOLA OLATUNJI","FIRST_NAME":"ZAHRA OYINKANSOLA","SURNAME":"OLATUNJI","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"6TH NOV, 2016","RELIGION":"MUSLIM","NATIONALITY":"NIGERIAN","ADDRESS":"3 MAIMASA CLOSE, OFF ANGOLA CRRESCENT BARNAWA","MUM_PHONE":"7039026281","DAD_PHONE":"8034099809","EMAIL":"kafayatadeshina66@yahoo.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/456","FULL_NAME":"CHIBUIKEM PRAISE ETUKA","FIRST_NAME":"CHIBUIKEM PRAISE","SURNAME":"ETUKA","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"M","DOB":"3RD NOV,2015","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 3 GIWA RD, BARNAWA H/COST KAD","MUM_PHONE":"8034852487","DAD_PHONE":"8036192861","EMAIL":"etukaada01@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/294","FULL_NAME":"OLUOMACHUKWU GABRIELLA NNAEMEKA","FIRST_NAME":"OLUOMACHUKWU GABRIELLA","SURNAME":"NNAEMEKA","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"7th Mar, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"Nigerian","ADDRESS":"No 2 Kujama Str, Off Gwari Rd Sabo-Tasha kaduna","MUM_PHONE":"8069074489","DAD_PHONE":"8030563303","EMAIL":"","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/595","FULL_NAME":"BEZALEL OLUWAPAMILERIN AYORINDE","FIRST_NAME":"BEZALEL OLUWAPAMILERIN","SURNAME":"AYORINDE","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"M","DOB":"27TH OCT, 2017","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 1  CONGO STR BARNAWA KADUNA","MUM_PHONE":"8065637141","DAD_PHONE":"8130521584","EMAIL":"st4royalty@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/309","FULL_NAME":"KOSISOCHUKWU PRECIOUS ORJI","FIRST_NAME":"KOSISOCHUKWU PRECIOUS","SURNAME":"ORJI","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"25TH DEC, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 2 CAMEROUN RD BARNAWA KADUNA","MUM_PHONE":"8065617737","DAD_PHONE":"8036480111","EMAIL":"orgibest728@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2017/282","FULL_NAME":"DELIZA ODUMU","FIRST_NAME":"DELIZA","SURNAME":"ODUMU","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"22 Jun, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 27 USMAN JIBRIL RD. NARAYI H/COST KADUNA","MUM_PHONE":"8033890991","DAD_PHONE":"8177492331","EMAIL":"jimeprettyjnr@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2018/293","FULL_NAME":"AMARISSA OMONLEGHO ARMSTRONG-AMU","FIRST_NAME":"AMARISSA OMONLEGHO","SURNAME":"ARMSTRONG-AMU","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"9th Sept, 2016","RELIGION":"CHRISTIAN","NATIONALITY":"Nigerian","ADDRESS":"7 BALARABE MUSA ROAD, NARAYI, KADUNA","MUM_PHONE":"8022227068","DAD_PHONE":"8067007894","EMAIL":"amuarmstrong@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2017/246","FULL_NAME":"INIOLUWA JAMES ADEJUWON","FIRST_NAME":"INIOLUWA JAMES","SURNAME":"ADEJUWON","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"M","DOB":"20th Oct, 2015","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"NO 3B GIWA STR OPPOSITE DE-EMINENT NARAYI H/COST KADUNA","MUM_PHONE":"8096095316","DAD_PHONE":"8068773317","EMAIL":"fatimaadejuwon@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2024/585","FULL_NAME":"OLUWAFUNKE MIMIDOO RITA OWOSO","FIRST_NAME":"OLUWAFUNKE MIMIDOO RITA","SURNAME":"OWOSO","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"F","DOB":"11TH NOV, 2015","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"20 MOROCCO,STR BARNAWA, KADUNA","MUM_PHONE":"8037518777","DAD_PHONE":"","EMAIL":"adesola.owoso@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2025/606","FULL_NAME":"DAVID ELEOJO CHRISTOPHER","FIRST_NAME":"DAVID ELEOJO","SURNAME":"CHRISTOPHER","CLASS":"YEAR 5","SECTION":"YEAR FIVE LOUIS PASTEUR","GENDER":"M","DOB":"30TH DECEMBER, 2014","RELIGION":"CHRISTIAN","NATIONALITY":"NIGERIAN","ADDRESS":"R2 SPQ 87 GAJERE STR. UNGWAN MAGEIRO KADUNA","MUM_PHONE":"7030265284","DAD_PHONE":"8037786266","EMAIL":"","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/404","FULL_NAME":"SA'ADA ALEENA JAMILU BALA","FIRST_NAME":"SA'ADA ALEENA JAMILU","SURNAME":"BALA","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"F","DOB":"30TH NOV, 2015","RELIGION":"MUSLIM","NATIONALITY":"Nigerian","ADDRESS":"NO 5BGURARA CLOSE BARNAWA KADUNA","MUM_PHONE":"7036017212","DAD_PHONE":"8060821117","EMAIL":"ummietofa015@yahoo.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2016/166","FULL_NAME":"LUCAS OJONELE MAKOLO","FIRST_NAME":"LUCAS OJONELE","SURNAME":"MAKOLO","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"M","DOB":"21st June,2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 6 RIMA RD CHALAWA BARNAWA KADUNA","MUM_PHONE":"8062104966","DAD_PHONE":"7038224169","EMAIL":"makolofriday85@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/158","FULL_NAME":"FARID TISAN MALLAM","FIRST_NAME":"FARID TISAN","SURNAME":"MALLAM","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"M","DOB":"3RD MAY,2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 16 MOZAMBIQUE ROAD BARNAWA KADUNA","MUM_PHONE":"8097248762","DAD_PHONE":"8091452431","EMAIL":"mrsjemallam@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2017/220","FULL_NAME":"BELLA OMOLOLA SANYAOLU","FIRST_NAME":"BELLA OMOLOLA","SURNAME":"SANYAOLU","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"F","DOB":"4TH MAY, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"14 MAKARFI ROAD NARAYI H/COST KADUNA","MUM_PHONE":"8067534069","DAD_PHONE":"8027672323","EMAIL":"seunsanya44@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2017/229","FULL_NAME":"SHANE KAMBAI BOBAI","FIRST_NAME":"SHANE KAMBAI","SURNAME":"BOBAI","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"M","DOB":"7th Jul, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 9 YUSUFU MOHAMMADU WAY NARAYI H/COST KADUNA","MUM_PHONE":"8036170153","DAD_PHONE":"8066541914","EMAIL":"lindabobai13@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2022/535","FULL_NAME":"OLOHIKONDU GLADYS ODUMA","FIRST_NAME":"OLOHIKONDU GLADYS","SURNAME":"ODUMA","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"F","DOB":"30TH DEC, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"12 USMAN MUAZU RD H/COST BARNWA KADUNA","MUM_PHONE":"8036051785","DAD_PHONE":"8030524857","EMAIL":"soduma2015@gmail.com","HOUSE":"YELLOW","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2020/439","FULL_NAME":"OLUWATOMILOLA NICOLE OLAOYE","FIRST_NAME":"OLUWATOMILOLA NICOLE","SURNAME":"OLAOYE","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"F","DOB":"28TH JAN,2016","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 31 MALAWI CRESCENT BAR KAD","MUM_PHONE":"8060362285","DAD_PHONE":"8063959434","EMAIL":"leoebony2@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2019/379","FULL_NAME":"AMY DANJUMA WAKAWA","FIRST_NAME":"AMY","SURNAME":"DANJUMA WAKAWA","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"F","DOB":"16TH NOV, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 4 GIMBIYA STR. OFF ENG GANA U/MAIGERO, KADUNA","MUM_PHONE":"7063443308","DAD_PHONE":"8030635753","EMAIL":"stdboz@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/2016/201","FULL_NAME":"HILAN DANIEL BUKU","FIRST_NAME":"HILAN DANIEL","SURNAME":"BUKU","CLASS":"YEAR 6","SECTION":"YEAR SIX NELSON MANDELA","GENDER":"M","DOB":"15th Jan, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"82A YAKWO STR NEW EXTENSION BAR. KADUNA","MUM_PHONE":"8036951034","DAD_PHONE":"8050602999","EMAIL":"gracebuku16@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/JSS/2025/001","FULL_NAME":"IKEMEFUNA JADEN JOSIAH-EKE","FIRST_NAME":"IKEMEFUNA JADEN","SURNAME":"JOSIAH-EKE","CLASS":"JSS 1","SECTION":"","GENDER":"M","DOB":"31ST AUG, 2013","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 12, YERINA STR, UNGWANBORO, KADUNA","MUM_PHONE":"8060390257","DAD_PHONE":"7036148430","EMAIL":"chinwendueke1@gmail.com","HOUSE":"GREEN","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/JSS/2025/002","FULL_NAME":"TREASURE IMOLEKRISTI OJO","FIRST_NAME":"TREASURE IMOLEKRISTI","SURNAME":"OJO","CLASS":"JSS 1","SECTION":"","GENDER":"F","DOB":"5TH SEPT, 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"AM 7 GADANI STREET DEEPER LIFE LINE TRIKANIA KADUNA","MUM_PHONE":"7032236374","DAD_PHONE":"8036250513","EMAIL":"opebabs2002@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/JSS/2025/004","FULL_NAME":"AKINLOLU OYETOSO OYELERE","FIRST_NAME":"AKINLOLU OYETOSO","SURNAME":"OYELERE","CLASS":"JSS 1","SECTION":"","GENDER":"M","DOB":"23RD OCT 2015","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"BLOCKS 8A&B S8 ROAD, SHAGARI LOW COST, BARNAWA KADUNA","MUM_PHONE":"08035931023","DAD_PHONE":"07032126861","EMAIL":"abolade.oyelere@gmail.com","HOUSE":"BLUE","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""},{"REG_NO":"GSPS/JSS/2025/005","FULL_NAME":"KEILA OMOJO NEMILA ABU","FIRST_NAME":"KEILA OMOJO NEMILA","SURNAME":"ABU","CLASS":"JSS 1","SECTION":"","GENDER":"F","DOB":"8TH OCT 2014","RELIGION":"Christian","NATIONALITY":"Nigerian","ADDRESS":"NO 7 MAYERE CRESCENT CAMP DAVID STREET, BARNAWA KADUNA","MUM_PHONE":"08088000006","DAD_PHONE":"8039317158","EMAIL":"treasuremeggy@gmail.com","HOUSE":"RED","MEDICAL_NOTES":"","EMERGENCY_CONTACT":"","ENROLLMENT_DATE":"","REMARKS":""}];
+const CLASSES = ['RECEPTION','PRE K','KG 1','KG2','YEAR 1','YEAR 2','YEAR 3','YEAR 4','YEAR 5','YEAR 6','JSS 1'];
+
+// =========================================================================
+// STORAGE KEYS
+// =========================================================================
+const LS_URL = 'gsps.sheetsUrl';
+const LS_PASS = 'gsps.passcode';
+const LS_USER = 'gsps.user';
+const LS_STUDENTS = 'gsps.students';
+const LS_ATT = 'gsps.attendance';
+const LS_QUEUE = 'gsps.queue';
+const LS_LAST_SYNC = 'gsps.lastSync';
+
+// =========================================================================
+// UTILITY
+// =========================================================================
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function toLocalISO(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+function parseLocal(s){ if(!s) return new Date(NaN); const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function todayStr(){ return toLocalISO(new Date()); }
+function fmtDate(s){ return parseLocal(s).toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'}); }
+function monthDays(yr, mo){
+  const out = []; const last = new Date(yr, mo+1, 0).getDate();
+  for(let d=1; d<=last; d++){ const dt = new Date(yr, mo, d);
+    if (dt.getDay()!==0 && dt.getDay()!==6) out.push(toLocalISO(dt));
+  }
+  return out;
+}
+function toast(msg, kind){
+  const t = $('#toast'); t.textContent = msg; t.style.background = kind==='err'?'var(--red)':kind==='warn'?'var(--amber)':'var(--navy)';
+  t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'), 1800);
+}
+function escapeHtml(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function attPct(c){ const {P=0,A=0,L=0}=c; const d=P+A+L; return d?((P+0.5*L)/d):null; }
+
+// =========================================================================
+// STATE
+// =========================================================================
+let students = [];
+let attendance = {};
+let queue = [];        // pending writes when offline
+let sheetsUrl = localStorage.getItem(LS_URL) || '';
+let passcode = localStorage.getItem(LS_PASS) || '';
+let currentUser = localStorage.getItem(LS_USER) || '';
+let online = navigator.onLine;
+let syncing = false;
+let syncingTimer = null;
+
+function loadLocal(){
+  try { students = JSON.parse(localStorage.getItem(LS_STUDENTS) || '[]'); } catch(e){ students=[]; }
+  try { attendance = JSON.parse(localStorage.getItem(LS_ATT) || '{}'); } catch(e){ attendance={}; }
+  try { queue = JSON.parse(localStorage.getItem(LS_QUEUE) || '[]'); } catch(e){ queue=[]; }
+  if (!students.length) students = JSON.parse(JSON.stringify(SEED_STUDENTS));
+}
+function saveStudentsLocal(){ localStorage.setItem(LS_STUDENTS, JSON.stringify(students)); }
+function saveAttLocal(){ localStorage.setItem(LS_ATT, JSON.stringify(attendance)); }
+function saveQueue(){ localStorage.setItem(LS_QUEUE, JSON.stringify(queue)); }
+
+// =========================================================================
+// NETWORK
+// =========================================================================
+async function callApi(action, payload){
+  if (!sheetsUrl) throw new Error('Not connected to Google Sheets');
+  // Use text/plain to avoid CORS preflight on Apps Script
+  const res = await fetch(sheetsUrl, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify({ passcode, action, payload, user: currentUser })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Unknown error');
+  return json.data;
+}
+
+window.addEventListener('online', ()=>{ online = true; updateSyncBar(); forceSync(); });
+window.addEventListener('offline', ()=>{ online = false; updateSyncBar(); });
+
+async function forceSync(silent){
+  if (syncing) return;
+  if (!sheetsUrl || !passcode) { updateSyncBar(); return; }
+  syncing = true; updateSyncBar();
+  try {
+    // Flush queue first
+    if (queue.length){
+      const marks = queue.filter(q=>q.kind==='mark').map(q=>q.data);
+      const students_ = queue.filter(q=>q.kind==='saveStudent').map(q=>q.data);
+      const deletes = queue.filter(q=>q.kind==='deleteStudent').map(q=>q.data);
+      if (marks.length) await callApi('markBatch', marks);
+      for (const s of students_) await callApi('saveStudent', s);
+      for (const d of deletes) await callApi('deleteStudent', d);
+      queue = []; saveQueue();
+    }
+    // Pull fresh data
+    const data = await callApi('getAll');
+    students = data.students || []; saveStudentsLocal();
+    attendance = data.attendance || {}; saveAttLocal();
+    localStorage.setItem(LS_LAST_SYNC, new Date().toISOString());
+    if (!silent) toast('Synced with Google Sheets');
+    rerenderCurrent();
+  } catch (err){
+    if (!silent) toast('Sync failed: ' + err.message, 'err');
+    online = false;
+  } finally {
+    syncing = false; updateSyncBar();
+  }
+}
+
+function enqueue(kind, data){
+  queue.push({ kind, data, at: new Date().toISOString() });
+  saveQueue();
+  if (online && sheetsUrl) scheduleSync();
+}
+function scheduleSync(){
+  if (syncingTimer) return;
+  syncingTimer = setTimeout(async ()=>{ syncingTimer = null; await forceSync(true); }, 800);
+}
+
+// =========================================================================
+// LOGIN / GATE
+// =========================================================================
+function showGate(initial){
+  $('#gate').style.display = 'block';
+  $('#appRoot').style.display = 'none';
+  $('#gate-err').classList.remove('on');
+  $('#g-user').value = currentUser || '';
+  $('#g-url').value = sheetsUrl || '';
+  $('#g-pass').value = '';
+  const needUrl = !sheetsUrl;
+  $('#gate-connect').style.display = needUrl ? '' : 'none';
+  $('#gate-title').textContent = needUrl ? 'Connect to Google Sheets' : 'Sign in';
+  $('#gate-sub').textContent = needUrl
+    ? 'Paste the Apps Script Web App URL and the admin passcode you set in the script.'
+    : 'Enter the admin passcode to continue.';
+}
+function toggleConnect(){
+  const v = $('#gate-connect').style.display==='none';
+  $('#gate-connect').style.display = v ? '' : 'none';
+  $('#gate-title').textContent = v ? 'Connect to Google Sheets' : 'Sign in';
+}
+async function doLogin(){
+  const url = $('#g-url').value.trim();
+  const pass = $('#g-pass').value.trim();
+  const user = $('#g-user').value.trim();
+  const err = $('#g-err');
+  if ($('#gate-connect').style.display !== 'none' && !url) { err.textContent='Paste the Apps Script URL'; err.classList.add('on'); return; }
+  if (!pass) { err.textContent='Passcode required'; err.classList.add('on'); return; }
+  const tempUrl = url || sheetsUrl;
+  try {
+    const res = await fetch(tempUrl, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ passcode:pass, action:'ping', user })
+    });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Bad response');
+  } catch (e){
+    err.textContent = 'Could not connect: ' + e.message;
+    err.classList.add('on');
+    return;
+  }
+  if (url) { sheetsUrl = url; localStorage.setItem(LS_URL, url); }
+  passcode = pass; localStorage.setItem(LS_PASS, pass);
+  currentUser = user; localStorage.setItem(LS_USER, user);
+  enterApp();
+  await forceSync(true);
+  toast('Welcome' + (user?', '+user:'') + '!');
+}
+function offlineMode(){
+  enterApp();
+  toast('Working offline — changes will sync when reconnected', 'warn');
+}
+function signOut(){
+  if (!confirm('Sign out? Any unsynced changes will remain on this device until you sign back in.')) return;
+  localStorage.removeItem(LS_PASS);
+  passcode = '';
+  showGate();
+}
+function signedInApp(){ return !!passcode || !!sheetsUrl; }
+
+function enterApp(){
+  $('#gate').style.display = 'none';
+  $('#appRoot').style.display = '';
+  updateSyncBar();
+  showPage(location.hash);
+}
+
+// =========================================================================
+// SYNC BAR
+// =========================================================================
+function updateSyncBar(){
+  const dot = $('#sync-dot'); const text = $('#sync-text');
+  const pending = queue.length;
+  $('#pending-count').textContent = pending ? (pending + ' pending') : '';
+  if (!sheetsUrl){
+    dot.className = 'sync-dot off'; text.textContent = 'Offline mode (no cloud)';
+  } else if (syncing){
+    dot.className = 'sync-dot'; text.textContent = 'Syncing…';
+  } else if (!online){
+    dot.className = 'sync-dot off'; text.textContent = 'Offline · changes queued';
+  } else {
+    dot.className = 'sync-dot'; text.textContent = 'Online · synced';
+  }
+  const lastSync = localStorage.getItem(LS_LAST_SYNC);
+  $('#foot-status').textContent = currentUser ? ('Signed in as ' + currentUser) : 'Signed in';
+}
+
+function changeConnection(){
+  localStorage.removeItem(LS_URL); localStorage.removeItem(LS_PASS);
+  sheetsUrl = ''; passcode = '';
+  showGate();
+}
+async function uploadSeed(){
+  if (!sheetsUrl) { toast('Not connected to Google Sheets', 'err'); return; }
+  if (!confirm(`Upload ${students.length} pupils to the Google Sheet? This will REPLACE the Students sheet on Google.`)) return;
+  try {
+    await callApi('seedStudents', { students });
+    toast('Roster uploaded');
+    await forceSync(true);
+  } catch(e){ toast('Upload failed: ' + e.message, 'err'); }
+}
+
+function rerenderCurrent(){
+  const active = (location.hash || '#dashboard').replace('#','');
+  if (active==='dashboard') renderDashboard();
+  else if (active==='attendance') renderAttTable();
+  else if (active==='students') renderStuTable();
+  else if (active==='reports') renderRepTable();
+  else if (active==='settings') renderSettings();
+}
+
+// =========================================================================
+// NAV
+// =========================================================================
+function showPage(hash){
+  const page = (hash || '#dashboard').replace('#','');
+  $$('.page').forEach(p => p.classList.remove('on'));
+  const el = $(`#page-${page}`);
+  if (el) el.classList.add('on');
+  $$('#nav a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#'+page));
+  if (page==='dashboard') renderDashboard();
+  if (page==='attendance') renderAttendance();
+  if (page==='students') renderStudents();
+  if (page==='reports') renderReports();
+  if (page==='settings') renderSettings();
+}
+window.addEventListener('hashchange', ()=>showPage(location.hash));
+
+// =========================================================================
+// COUNT HELPERS
+// =========================================================================
+function countsFor(regNo, dates){
+  const c = { P:0, A:0, L:0, E:0 };
+  for(const d of dates){
+    const s = attendance[d]?.[regNo]?.s;
+    if (s && c.hasOwnProperty(s)) c[s]++;
+  }
+  return c;
+}
+function countsForClass(cls, dates){
+  const c = { P:0, A:0, L:0, E:0 };
+  const regs = students.filter(s=>s.CLASS===cls).map(s=>s.REG_NO);
+  for(const d of dates){
+    const rec = attendance[d] || {};
+    for(const r of regs){ const s = rec[r]?.s; if (s && c.hasOwnProperty(s)) c[s]++; }
+  }
+  return c;
+}
+function countsForAll(dates){
+  const c = { P:0, A:0, L:0, E:0 };
+  for(const d of dates){
+    const rec = attendance[d] || {};
+    for(const r in rec){ const s = rec[r]?.s; if (s && c.hasOwnProperty(s)) c[s]++; }
+  }
+  return c;
+}
+
+// =========================================================================
+// DASHBOARD
+// =========================================================================
+let classChart, statusChart, trendChart;
+
+function renderDashboard(){
+  const now = new Date();
+  $('#today-label').textContent = now.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const today = todayStr();
+
+  const trendDates = [];
+  let d = new Date();
+  while (trendDates.length < 20){
+    if (d.getDay()!==0 && d.getDay()!==6) trendDates.unshift(toLocalISO(d));
+    d.setDate(d.getDate()-1);
+  }
+  const mtd = monthDays(now.getFullYear(), now.getMonth()).filter(x=>x<=today);
+
+  const todayCounts = countsForAll([today]);
+  const todayPct = attPct(todayCounts);
+  const mtdCounts = countsForAll(mtd);
+  const mtdPct = attPct(mtdCounts);
+
+  const kpis = [
+    { lbl: 'Total Pupils', val: students.length, sub: `${CLASSES.length} classes` },
+    { lbl: "Today's attendance", val: todayPct==null ? '—' : (todayPct*100).toFixed(1)+'%', sub: todayCounts.P+' present · '+todayCounts.A+' absent · '+todayCounts.L+' late', cls: todayPct==null?'':(todayPct>=0.9?'ok':todayPct>=0.75?'warn':'bad') },
+    { lbl: 'Month-to-date %', val: mtdPct==null ? '—' : (mtdPct*100).toFixed(1)+'%', sub: mtd.length+' school days', cls: mtdPct==null?'':(mtdPct>=0.9?'ok':mtdPct>=0.75?'warn':'bad') },
+    { lbl: 'Days recorded', val: Object.keys(attendance).length, sub: 'All time' },
+  ];
+  $('#kpis').innerHTML = kpis.map(k=>`
+    <div class="card kpi ${k.cls||''}"><div class="bar"></div>
+      <div class="lbl">${k.lbl}</div>
+      <div class="val">${k.val}</div>
+      <div class="sub">${k.sub||''}</div>
+    </div>`).join('');
+
+  const tbody = $('#classTable tbody');
+  tbody.innerHTML = CLASSES.map(c => {
+    const roster = students.filter(s=>s.CLASS===c);
+    const counts = countsForClass(c, mtd);
+    const pct = attPct(counts);
+    const pctStr = pct==null ? '—' : (pct*100).toFixed(1)+'%';
+    const status = pct==null ? '<span class="badge">No data</span>'
+                : pct>=0.9 ? '<span class="pill P">Excellent</span>'
+                : pct>=0.75 ? '<span class="pill L">Good</span>'
+                : '<span class="pill A">Needs focus</span>';
+    return `<tr>
+      <td><strong>${c}</strong></td><td>${roster.length}</td>
+      <td>${counts.P}</td><td>${counts.A}</td><td>${counts.L}</td><td>${counts.E}</td>
+      <td><strong>${pctStr}</strong></td><td>${status}</td></tr>`;
+  }).join('');
+
+  const barLabels = CLASSES;
+  const barValues = CLASSES.map(c => { const p = attPct(countsForClass(c, mtd)); return p==null ? 0 : +(p*100).toFixed(1); });
+  if (classChart) classChart.destroy();
+  classChart = new Chart($('#classChart'), {
+    type:'bar',
+    data:{ labels:barLabels, datasets:[{ label:'Attendance %', data:barValues, backgroundColor:'#2e75b6', borderRadius:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+      plugins:{ legend:{ display:false } } }
+  });
+
+  if (statusChart) statusChart.destroy();
+  statusChart = new Chart($('#statusChart'), {
+    type:'doughnut',
+    data:{ labels:['Present','Absent','Late','Excused','Not marked'],
+      datasets:[{ data:[ todayCounts.P, todayCounts.A, todayCounts.L, todayCounts.E,
+        Math.max(0, students.length - (todayCounts.P+todayCounts.A+todayCounts.L+todayCounts.E))
+      ], backgroundColor:['#16a34a','#dc2626','#f59e0b','#4f46e5','#e5e7eb'], borderWidth:0 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12 } } } }
+  });
+
+  const trendData = trendDates.map(dt => { const c = countsForAll([dt]); const p = attPct(c); return p==null ? null : +(p*100).toFixed(1); });
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart($('#trendChart'), {
+    type:'line',
+    data:{ labels: trendDates.map(d=>d.slice(5)),
+      datasets:[{ label:'Attendance %', data:trendData, borderColor:'#2e75b6', backgroundColor:'rgba(46,117,182,.15)', fill:true, tension:.3, spanGaps:true, pointRadius:3 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+      plugins:{ legend:{ display:false } } }
+  });
+}
+
+// =========================================================================
+// ATTENDANCE PAGE
+// =========================================================================
+function renderAttendance(){
+  const sel = $('#att-class');
+  if (!sel.options.length) CLASSES.forEach(c => { const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  if (!$('#att-date').value) $('#att-date').value = todayStr();
+  $('#att-date').onchange = renderAttTable;
+  $('#att-class').onchange = renderAttTable;
+  $('#att-search').oninput = renderAttTable;
+  renderAttTable();
+}
+function renderAttTable(){
+  const date = $('#att-date').value || todayStr();
+  const cls = $('#att-class').value || CLASSES[0];
+  const q = ($('#att-search').value || '').toLowerCase();
+  const roster = students.filter(s => s.CLASS === cls
+    && (!q || (s.FULL_NAME||'').toLowerCase().includes(q) || (s.REG_NO||'').toLowerCase().includes(q)));
+  const rec = attendance[date] || {};
+  const tbody = $('#attTable tbody');
+  if (!roster.length){
+    tbody.innerHTML = `<tr><td colspan="6" class="empty"><div class="ic">∅</div>No pupils match</td></tr>`;
+  } else {
+    tbody.innerHTML = roster.map((s,i)=>{
+      const cur = rec[s.REG_NO] || {};
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${escapeHtml(s.REG_NO)}</td>
+        <td><strong>${escapeHtml(s.FULL_NAME)}</strong></td>
+        <td>${s.HOUSE?`<span class="badge house-${s.HOUSE}">${s.HOUSE}</span>`:''}</td>
+        <td><div class="status-group">
+          ${['P','A','L','E'].map(st=>`<button class="status-btn ${st} ${cur.s===st?'on':''}" onclick="setStatus('${s.REG_NO}','${date}','${st}')" title="${st==='P'?'Present':st==='A'?'Absent':st==='L'?'Late':'Excused'}">${st}</button>`).join('')}
+        </div></td>
+        <td><input type="text" data-reg="${s.REG_NO}" data-date="${date}" placeholder="Optional note" value="${escapeHtml(cur.n||'')}" onchange="setNote(this)" style="width:95%;padding:5px 8px;border:1px solid var(--border);border-radius:5px"></td>
+      </tr>`;
+    }).join('');
+  }
+  const c = countsForClass(cls, [date]);
+  const pct = attPct(c);
+  const pctStr = pct==null ? '—' : (pct*100).toFixed(1)+'%';
+  $('#att-summary').innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <span class="badge"><strong>${cls}</strong> · ${fmtDate(date)}</span>
+    <span class="pill P">Present ${c.P}</span>
+    <span class="pill A">Absent ${c.A}</span>
+    <span class="pill L">Late ${c.L}</span>
+    <span class="pill E">Excused ${c.E}</span>
+    <span class="pill none">Not marked ${Math.max(0, roster.length - (c.P+c.A+c.L+c.E))}</span>
+    <span style="margin-left:auto;font-weight:700;color:var(--navy)">Attendance: ${pctStr}</span>
+  </div>`;
+}
+function setStatus(regNo, date, st){
+  if (!attendance[date]) attendance[date] = {};
+  const cur = attendance[date][regNo] || {};
+  cur.s = cur.s===st ? null : st;
+  if (!cur.s && !cur.n) delete attendance[date][regNo]; else attendance[date][regNo] = cur;
+  saveAttLocal();
+  enqueue('mark', { date, regNo, status: cur.s||'', note: cur.n||'' });
+  renderAttTable();
+}
+function setNote(input){
+  const reg = input.dataset.reg; const date = input.dataset.date;
+  if (!attendance[date]) attendance[date] = {};
+  const cur = attendance[date][reg] || {};
+  cur.n = input.value;
+  if (!cur.s && !cur.n) delete attendance[date][reg]; else attendance[date][reg] = cur;
+  saveAttLocal();
+  enqueue('mark', { date, regNo: reg, status: cur.s||'', note: cur.n||'' });
+}
+function markAll(st){
+  const date = $('#att-date').value || todayStr();
+  const cls = $('#att-class').value || CLASSES[0];
+  const roster = students.filter(s => s.CLASS === cls);
+  if (!attendance[date]) attendance[date] = {};
+  const batch = [];
+  for(const s of roster){
+    const cur = attendance[date][s.REG_NO] || {};
+    if (st==null){ delete attendance[date][s.REG_NO]; batch.push({ date, regNo:s.REG_NO, status:'', note:'' }); }
+    else { cur.s = st; attendance[date][s.REG_NO] = cur; batch.push({ date, regNo:s.REG_NO, status:st, note:cur.n||'' }); }
+  }
+  saveAttLocal();
+  for (const b of batch) queue.push({ kind:'mark', data:b, at:new Date().toISOString() });
+  saveQueue();
+  if (online && sheetsUrl) scheduleSync();
+  renderAttTable();
+  toast(st==null ? 'Cleared' : `All marked ${st}`);
+}
+
+// =========================================================================
+// STUDENTS PAGE
+// =========================================================================
+function renderStudents(){
+  $('#student-count').textContent = `${students.length} pupils registered`;
+  const clsSel = $('#stu-class-filter');
+  if (!clsSel.options[1]) CLASSES.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; clsSel.appendChild(o); });
+  $('#stu-search').oninput = renderStuTable;
+  $('#stu-class-filter').onchange = renderStuTable;
+  $('#stu-gender-filter').onchange = renderStuTable;
+  $('#stu-house-filter').onchange = renderStuTable;
+  renderStuTable();
+}
+function renderStuTable(){
+  const q = ($('#stu-search').value||'').toLowerCase();
+  const cls = $('#stu-class-filter').value;
+  const g = $('#stu-gender-filter').value;
+  const h = $('#stu-house-filter').value;
+  const filtered = students.filter(s => {
+    if (cls && s.CLASS !== cls) return false;
+    if (g && s.GENDER !== g) return false;
+    if (h && s.HOUSE !== h) return false;
+    if (q){
+      const blob = [s.FULL_NAME, s.REG_NO, s.EMAIL, s.ADDRESS, s.MUM_PHONE, s.DAD_PHONE].join(' ').toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+  const mtd = monthDays(new Date().getFullYear(), new Date().getMonth()).filter(x=>x<=todayStr());
+  const tbody = $('#stuTable tbody');
+  if (!filtered.length){ tbody.innerHTML = `<tr><td colspan="9" class="empty"><div class="ic">∅</div>No pupils match</td></tr>`; return; }
+  tbody.innerHTML = filtered.map(s => {
+    const counts = countsFor(s.REG_NO, mtd);
+    const pct = attPct(counts);
+    return `<tr onclick="openStudentModal('${s.REG_NO}')" style="cursor:pointer">
+      <td>${escapeHtml(s.REG_NO)}</td>
+      <td><strong>${escapeHtml(s.FULL_NAME)}</strong></td>
+      <td>${escapeHtml(s.CLASS||'')}</td>
+      <td>${s.GENDER||''}</td>
+      <td>${s.HOUSE?`<span class="badge house-${s.HOUSE}">${s.HOUSE}</span>`:''}</td>
+      <td>${escapeHtml(s.MUM_PHONE||s.DAD_PHONE||'')}</td>
+      <td>${escapeHtml(s.EMAIL||'')}</td>
+      <td>${pct==null?'—':(pct*100).toFixed(0)+'%'}</td>
+      <td><button class="btn ghost sm" onclick="event.stopPropagation();openStudentModal('${s.REG_NO}')">Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+let editingRegNo = null;
+function openStudentModal(regNo){
+  editingRegNo = regNo || null;
+  $('#stu-modal-title').textContent = regNo ? 'Edit student' : 'Add student';
+  $('#f-del').style.display = regNo ? '' : 'none';
+  const classSel = $('#f-class');
+  if (!classSel.options.length) classSel.innerHTML = CLASSES.map(c=>`<option>${c}</option>`).join('');
+  const s = regNo ? students.find(x=>x.REG_NO===regNo) : {};
+  $('#f-reg').value = s?.REG_NO || '';
+  $('#f-name').value = s?.FULL_NAME || '';
+  $('#f-class').value = s?.CLASS || CLASSES[0];
+  $('#f-section').value = s?.SECTION || '';
+  $('#f-gender').value = s?.GENDER || '';
+  $('#f-dob').value = s?.DOB || '';
+  $('#f-religion').value = s?.RELIGION || '';
+  $('#f-nat').value = s?.NATIONALITY || 'NIGERIAN';
+  $('#f-house').value = s?.HOUSE || '';
+  $('#f-enroll').value = s?.ENROLLMENT_DATE || '';
+  $('#f-address').value = s?.ADDRESS || '';
+  $('#f-mum').value = s?.MUM_PHONE || '';
+  $('#f-dad').value = s?.DAD_PHONE || '';
+  $('#f-email').value = s?.EMAIL || '';
+  $('#f-med').value = s?.MEDICAL_NOTES || '';
+  $('#f-emg').value = s?.EMERGENCY_CONTACT || '';
+  $('#f-rem').value = s?.REMARKS || '';
+  $('#stu-modal').classList.add('on');
+}
+function closeStudentModal(){ $('#stu-modal').classList.remove('on'); }
+function saveStudent(){
+  const reg = $('#f-reg').value.trim();
+  const name = $('#f-name').value.trim();
+  if (!reg || !name){ toast('Reg No and Name are required', 'err'); return; }
+  const rec = {
+    REG_NO: reg, FULL_NAME: name,
+    CLASS: $('#f-class').value, SECTION: $('#f-section').value.trim(),
+    GENDER: $('#f-gender').value, DOB: $('#f-dob').value.trim(),
+    RELIGION: $('#f-religion').value.trim(), NATIONALITY: $('#f-nat').value.trim(),
+    HOUSE: $('#f-house').value, ENROLLMENT_DATE: $('#f-enroll').value,
+    ADDRESS: $('#f-address').value.trim(),
+    MUM_PHONE: $('#f-mum').value.trim(), DAD_PHONE: $('#f-dad').value.trim(),
+    EMAIL: $('#f-email').value.trim(),
+    MEDICAL_NOTES: $('#f-med').value.trim(), EMERGENCY_CONTACT: $('#f-emg').value.trim(),
+    REMARKS: $('#f-rem').value.trim(),
+  };
+  if (editingRegNo){
+    const idx = students.findIndex(s=>s.REG_NO===editingRegNo);
+    if (idx>=0) students[idx] = { ...students[idx], ...rec };
+  } else {
+    if (students.find(s=>s.REG_NO===reg)){ toast('A pupil with that Reg No already exists', 'err'); return; }
+    students.push(rec);
+  }
+  saveStudentsLocal();
+  enqueue('saveStudent', rec);
+  closeStudentModal();
+  renderStuTable();
+  toast('Saved');
+}
+function deleteStudent(){
+  if (!editingRegNo) return;
+  if (!confirm('Delete this pupil and all their attendance records?')) return;
+  const regNo = editingRegNo;
+  students = students.filter(s => s.REG_NO !== regNo);
+  for (const d in attendance){ if (attendance[d][regNo]) delete attendance[d][regNo]; }
+  saveStudentsLocal(); saveAttLocal();
+  enqueue('deleteStudent', { regNo });
+  closeStudentModal();
+  renderStuTable();
+  toast('Deleted');
+}
+
+// =========================================================================
+// REPORTS
+// =========================================================================
+function renderReports(){
+  const clsSel = $('#rep-class');
+  if (!clsSel.options[1]) CLASSES.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; clsSel.appendChild(o); });
+  if (!$('#rep-from').value){
+    const d = new Date(); d.setDate(d.getDate()-30);
+    $('#rep-from').value = toLocalISO(d); $('#rep-to').value = todayStr();
+  }
+  ['rep-from','rep-to','rep-class','rep-search'].forEach(id => {
+    const el = $('#'+id); el.oninput = renderRepTable; el.onchange = renderRepTable;
+  });
+  renderRepTable();
+}
+function datesBetween(from, to){
+  const out = []; const a = parseLocal(from); const b = parseLocal(to);
+  while (a <= b){
+    const iso = toLocalISO(a);
+    const isWeekend = (a.getDay()===0 || a.getDay()===6);
+    const hasData = attendance[iso] && Object.keys(attendance[iso]).length > 0;
+    if (!isWeekend || hasData) out.push(iso);
+    a.setDate(a.getDate()+1);
+  }
+  return out;
+}
+function renderRepTable(){
+  const from = $('#rep-from').value, to = $('#rep-to').value;
+  if (!from || !to || from > to){ $('#repTable tbody').innerHTML=''; return; }
+  const dates = datesBetween(from, to);
+  const cls = $('#rep-class').value;
+  const q = ($('#rep-search').value||'').toLowerCase();
+  const roster = students.filter(s => (!cls || s.CLASS===cls) && (!q || (s.FULL_NAME||'').toLowerCase().includes(q) || (s.REG_NO||'').toLowerCase().includes(q)));
+  const rows = roster.map(s => { const c = countsFor(s.REG_NO, dates); return { s, c, pct: attPct(c) }; });
+  $('#repTable tbody').innerHTML = rows.map(r => `<tr>
+    <td>${escapeHtml(r.s.REG_NO)}</td>
+    <td><strong>${escapeHtml(r.s.FULL_NAME)}</strong></td>
+    <td>${r.s.CLASS}</td>
+    <td>${dates.length}</td>
+    <td>${r.c.P}</td><td>${r.c.A}</td><td>${r.c.L}</td><td>${r.c.E}</td>
+    <td><strong style="color:${r.pct==null?'#666':r.pct>=0.9?'#16a34a':r.pct>=0.75?'#f59e0b':'#dc2626'}">${r.pct==null?'—':(r.pct*100).toFixed(1)+'%'}</strong></td>
+  </tr>`).join('');
+  window._reportRows = rows; window._reportDates = dates;
+}
+
+// =========================================================================
+// EXPORT / BACKUP / SETTINGS
+// =========================================================================
+function downloadFile(name, content, type='text/csv'){
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function csvEscape(v){ if (v==null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
+function exportStudentsCSV(){
+  const cols = ['REG_NO','FULL_NAME','CLASS','SECTION','GENDER','DOB','RELIGION','NATIONALITY','HOUSE','ADDRESS','MUM_PHONE','DAD_PHONE','EMAIL','MEDICAL_NOTES','EMERGENCY_CONTACT','ENROLLMENT_DATE','REMARKS'];
+  const lines = [cols.join(',')];
+  for (const s of students) lines.push(cols.map(c=>csvEscape(s[c])).join(','));
+  downloadFile(`GSPS-students-${todayStr()}.csv`, lines.join('\n')); toast('Exported');
+}
+function exportDayCSV(){
+  const date = $('#att-date').value || todayStr();
+  const cls = $('#att-class').value || CLASSES[0];
+  const rec = attendance[date] || {};
+  const roster = students.filter(s=>s.CLASS===cls);
+  const lines = ['Reg No,Name,Class,Status,Notes'];
+  for(const s of roster){ const r = rec[s.REG_NO]||{}; lines.push([s.REG_NO,s.FULL_NAME,s.CLASS,r.s||'',r.n||''].map(csvEscape).join(',')); }
+  downloadFile(`GSPS-attendance-${cls.replace(/\s+/g,'_')}-${date}.csv`, lines.join('\n')); toast('Exported');
+}
+function exportReportCSV(){
+  const rows = window._reportRows || []; const dates = window._reportDates || [];
+  const lines = ['Reg No,Name,Class,School Days,Present,Absent,Late,Excused,Attendance %'];
+  for(const r of rows) lines.push([r.s.REG_NO,r.s.FULL_NAME,r.s.CLASS,dates.length,r.c.P,r.c.A,r.c.L,r.c.E,r.pct==null?'':(r.pct*100).toFixed(2)].map(csvEscape).join(','));
+  downloadFile(`GSPS-report-${todayStr()}.csv`, lines.join('\n')); toast('Exported');
+}
+function backupJSON(){
+  const blob = { students, attendance, exportedAt: new Date().toISOString() };
+  downloadFile(`GSPS-backup-${todayStr()}.json`, JSON.stringify(blob, null, 2), 'application/json');
+  toast('Backup downloaded');
+}
+function resetLocal(){
+  if (!confirm('Clear local cache? This does NOT delete data in Google Sheets. You will resync on next login.')) return;
+  localStorage.removeItem(LS_STUDENTS); localStorage.removeItem(LS_ATT); localStorage.removeItem(LS_QUEUE);
+  students = JSON.parse(JSON.stringify(SEED_STUDENTS)); attendance = {}; queue = [];
+  saveStudentsLocal(); saveAttLocal(); saveQueue();
+  toast('Local cache cleared');
+  if (online && sheetsUrl) forceSync();
+  rerenderCurrent();
+}
+function renderSettings(){
+  $('#conn-info').innerHTML = sheetsUrl
+    ? `<strong>Connected</strong> to <code style="font-size:12px">${escapeHtml(sheetsUrl.slice(0,80))}…</code><br>
+       <span style="color:var(--muted);font-size:12px">Signed in as: ${escapeHtml(currentUser||'(anonymous)')}</span>`
+    : `<strong>Not connected.</strong> The app is working in local-only offline mode.`;
+  const lastSync = localStorage.getItem(LS_LAST_SYNC);
+  $('#sync-details').innerHTML = `
+    <p><strong>Pupils:</strong> ${students.length}</p>
+    <p><strong>Attendance days logged:</strong> ${Object.keys(attendance).length}</p>
+    <p><strong>Pending changes queued:</strong> ${queue.length}</p>
+    <p><strong>Last sync:</strong> ${lastSync ? new Date(lastSync).toLocaleString() : '—'}</p>
+    <p><strong>Connection:</strong> ${online?'Online':'Offline'}</p>`;
+}
+
+// =========================================================================
+// BOOT
+// =========================================================================
+loadLocal();
+if (sheetsUrl && passcode) { enterApp(); forceSync(true); }
+else { showGate(true); }
+</script>
+</body>
+</html>
